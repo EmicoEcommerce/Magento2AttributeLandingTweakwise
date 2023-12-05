@@ -46,7 +46,7 @@ define([
                     });
 
                     if (foundSelectedValue === false && selectedValue) {
-                        selectAttribute.prepend($("<option></option>").attr("value", selectedValue).text(selectedValue + " (Invalid value)").attr("selected", "selected"));
+                        selectAttribute.val('tw_other');
                     } else {
                         //no default value, set value to first option
                         inputAttribute.val(selectAttribute.val());
@@ -79,10 +79,23 @@ define([
                     facetValue = inputAttribute.val();
                 }
 
-                inputAttribute.val(facetValue);
+                if (facetValue == 'tw_other') {
+                    inputAttribute.show();
+                    selectValue.val('tw_other');
+                    inputValue.show();
+                } else {
+                    inputAttribute.hide();
+                    if (selectValue.val() != 'tw_other') {
+                        inputValue.hide();
+                        inputAttribute.val(facetValue);
+                    } else {
+                        inputValue.show();
+                    }
+                }
+
                 inputAttribute.change();
 
-                $.getJSON(facetUrl, function( data ) {
+                $.getJSON(facetUrl, function (data) {
                     selectValue.empty();
                     data.data.forEach(value => {
                         if (value.value != inputValue.val()) {
@@ -94,7 +107,7 @@ define([
                     });
 
                     if (foundSelectedValue === false && inputValue.val()) {
-                        selectValue.prepend($("<option></option>").attr("value", inputValue.val()).text(inputValue.val() + " (Invalid value)").attr("selected", "selected"));
+                        selectValue.val('tw_other');
                     } else {
                         //no default value, set value to first option
                         inputValue.val(selectValue.val());

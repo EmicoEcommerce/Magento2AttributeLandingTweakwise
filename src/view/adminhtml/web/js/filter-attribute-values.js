@@ -24,8 +24,13 @@ define([
                 var select = $('select[name="' + name + '"]');
                 var input = $('input[name="' + name.replace('[value-tmp]', '[value]') + '"]');
 
-                input.val(select.val());
-                input.change();
+                if (select.val() == 'tw_other') {
+                    input.show();
+                } else {
+                    input.hide();
+                    input.val(select.val());
+                    input.change();
+                }
             });
         }
     });

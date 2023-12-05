@@ -70,7 +70,7 @@
                         </item>
                     </argument>
                 </field>
-                <field formElement="select" name="value-tmp" sortOrder="2">
+                <field formElement="select" name="value-tmp" sortOrder="3">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
                             <item name="fit" xsi:type="boolean">false</item>
@@ -80,7 +80,7 @@
                         </item>
                     </argument>
                 </field>
-                <field formElement="input" name="attribute" sortOrder="3">
+                <field formElement="input" name="attribute" sortOrder="2">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
                             <item name="prefixName" xsi:type="string">attribute</item>
