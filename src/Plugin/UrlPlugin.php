@@ -79,7 +79,7 @@ class UrlPlugin
         }
 
         if ($url = $this->filterManager->findLandingPageUrlForFilterItem($filterItem)) {
-            return '/' . $url;
+            return $url;
         }
 
         return $proceed($filterItem);
