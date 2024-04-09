@@ -117,7 +117,6 @@ define([
             });
 
             //select different filter template
-            $('select[name="tweakwise_filter_template"]').unbind('change');
             $('select[name="tweakwise_filter_template"]').on('change', function(evt) {
                 $('select[name*="[attribute-tmp]"]').trigger('initAttributes');
             });
