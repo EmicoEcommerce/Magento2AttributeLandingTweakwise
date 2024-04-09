@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
@@ -92,7 +93,8 @@ class FilterManager
             SORT_REGULAR
         );
 
-        if ($url = $this->urlFinder->findUrlByFilters($filters, $layer->getCurrentCategory()->getEntityId())) {
+        $url = $this->urlFinder->findUrlByFilters($filters, $layer->getCurrentCategory()->getEntityId());
+        if ($url) {
             return $url;
         }
 
@@ -104,7 +106,8 @@ class FilterManager
      */
     public function getLandingsPageFilters()
     {
-        if (!$landingsPage = $this->landingPageContext->getLandingPage()) {
+        $landingsPage = $this->landingPageContext->getLandingPage();
+        if (!$landingsPage) {
             return [];
         }
 
@@ -122,18 +125,23 @@ class FilterManager
             if ($landingPage === null) {
                 return $filters;
             }
+
             /** @var string|int $index  */
             foreach ($filters as $index => $filterItem) {
-                if ($this->filterHider->shouldHideFilter(
-                    $landingPage,
-                    $filterItem->getFilter(),
-                    $filterItem
-                )) {
+                if (
+                    $this->filterHider->shouldHideFilter(
+                        $landingPage,
+                        $filterItem->getFilter(),
+                        $filterItem
+                    )
+                ) {
                     unset($filters[$index]);
                 }
             }
+
             $this->activeFiltersExcludingLandingPageFilters = $filters;
         }
+
         return $this->activeFiltersExcludingLandingPageFilters;
     }
 
@@ -150,15 +158,19 @@ class FilterManager
         if (!\is_array($filterItems)) {
             return [];
         }
+
         // Do not consider category as active
-        $filterItems = \array_filter($filterItems, function (Item $filter) {
-            $source = $filter
+        $filterItems = \array_filter(
+            $filterItems,
+            function (Item $filter) {
+                $source = $filter
                 ->getFilter()
                 ->getFacet()
                 ->getFacetSettings()
                 ->getSource();
-            return $source !== SettingsType::SOURCE_CATEGORY;
-        });
+                return $source !== SettingsType::SOURCE_CATEGORY;
+            }
+        );
         $this->activeFilters = $filterItems;
         return $this->activeFilters;
     }
@@ -186,6 +198,7 @@ class FilterManager
                 return true;
             }
         }
+
         return false;
     }
 }

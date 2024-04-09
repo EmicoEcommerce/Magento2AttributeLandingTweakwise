@@ -8,7 +8,6 @@ use Magento\Framework\View\Element\Template;
 
 /**
  * Class DefaultRendererPlugin
- * @package Tweakwise\AttributeLandingTweakwise\Plugin\Block\LayeredNavigation\RenderLayered
  */
 class RendererPlugin
 {
@@ -27,7 +26,7 @@ class RendererPlugin
     }
 
     /**
-     * @param Template $renderer used Template here as this class is subscribed multiple times as a plugin
+     * @param Template $renderer
      * @param string $result
      * @param Item $filterItem
      * @return string

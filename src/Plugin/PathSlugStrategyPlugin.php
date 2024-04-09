@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
@@ -41,7 +42,7 @@ class PathSlugStrategyPlugin
      * @param LandingPageContext $landingPageContext
      * @param FilterManager $filterManager
      * @param UrlFactory $urlFactory
-     * @param Url $magentoUrl
+     * @param FilterSlugManager $filterSlugManager
      */
     public function __construct(
         LandingPageContext $landingPageContext,
@@ -133,11 +134,13 @@ class PathSlugStrategyPlugin
         } else {
             $filters = $this->filterManager->getAllActiveFilters();
         }
+
         foreach ($filters as $key => $activeItem) {
             if ($activeItem === $item) {
                 unset($filters[$key]);
             }
         }
+
         return $pathSlugStrategy->buildFilterUrl($request, $filters);
     }
 
@@ -186,7 +189,8 @@ class PathSlugStrategyPlugin
     }
 
     /**
-     * @deprecated
+     * @param PathSlugStrategy $original
+     * @param string $result
      * @param MagentoHttpRequest $request
      * @return string
      */

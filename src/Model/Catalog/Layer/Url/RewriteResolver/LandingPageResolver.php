@@ -60,6 +60,9 @@ class LandingPageResolver implements RewriteResolverInterface
 
     /**
      * @inheritDoc
+     *
+     * phpcs:disable Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
+     * phpcs:disable Generic.CodeAnalysis.EmptyStatement.DetectedCatch
      */
     public function getRewrites(MagentoHttpRequest $request): array
     {
@@ -107,6 +110,7 @@ class LandingPageResolver implements RewriteResolverInterface
             $lastPathPart .= '/' . $pathPart;
             $paths[] = $lastPathPart;
         }
+
         $paths = array_reverse($paths);
 
         if (!$this->attributeLandingConfig->isAppendCategoryUrlSuffix()) {

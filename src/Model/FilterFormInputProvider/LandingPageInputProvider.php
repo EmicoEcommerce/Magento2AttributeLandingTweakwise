@@ -4,6 +4,7 @@
  * @author : Edwin Jacobs, email: ejacobs@emico.nl.
  * @copyright : Copyright Emico B.V. 2020.
  */
+
 namespace Tweakwise\AttributeLandingTweakwise\Model\FilterFormInputProvider;
 
 use Emico\AttributeLanding\Api\Data\LandingPageInterface;
@@ -114,7 +115,7 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
     /**
      * @return string
      */
-    public function getOriginalUrl() : string
+    public function getOriginalUrl(): string
     {
         return $this->layerUrl->getUrlStrategy()->getOriginalUrl($this->request);
     }

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
@@ -40,11 +41,13 @@ class TweakwiseFilterApplier implements FilterApplierInterface
             $navigationRequest->addAttributeFilter($filter->getFacet(), $filter->getValue());
         }
 
-        if ($filterTemplateId = $page->getTweakwiseFilterTemplate()) {
+        $filterTemplateId = $page->getTweakwiseFilterTemplate();
+        if ($filterTemplateId) {
             $navigationRequest->setTemplateId($filterTemplateId);
         }
 
-        if ($sortTemplateId = $page->getTweakwiseSortTemplate()) {
+        $sortTemplateId = $page->getTweakwiseSortTemplate();
+        if ($sortTemplateId) {
             $navigationRequest->setSortTemplateId($sortTemplateId);
         }
     }

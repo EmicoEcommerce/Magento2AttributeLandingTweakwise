@@ -51,16 +51,17 @@ class AjaxNavigationResultPlugin
         $this->url = $url;
     }
 
-    public function aroundGetResponseUrl(AjaxNavigationResult $ajaxNavigationResult, callable $proceed) {
-       $type = $this->request->getParam('__tw_ajax_type');
+    public function aroundGetResponseUrl(AjaxNavigationResult $ajaxNavigationResult, callable $proceed)
+    {
+        $type = $this->request->getParam('__tw_ajax_type');
 
         if ($type === 'landingpage' && $this->landingPageContext->getLandingPage()) {
             $filters = $this->filterManager->getActiveFiltersExcludingLandingPageFilters();
             $url = $this->url->getFilterUrl($filters);
 
             return $url;
-       }
+        }
 
-       return $proceed();
+        return $proceed();
     }
 }

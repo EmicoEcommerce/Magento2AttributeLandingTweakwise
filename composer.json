@@ -2,10 +2,18 @@
     "name": "tweakwise/magento2-attributelanding-tweakwise",
     "description": "Provides compatibility between Attribute landing module and Tweakwise module.",
     "license": "OSL-3.0",
+    "version": "4.3.1",
     "require": {
         "php": ">=8.0 <8.3",
         "tweakwise/magento2-tweakwise": "^5.7.4",
-        "emico/m2-attributelanding": "^4.0"
+        "emico/m2-attributelanding": "^4.1"
+    },
+    "require-dev": {
+        "symfony/finder": "^6.4.0",
+        "youwe/testing-suite": "^2.18",
+        "youwe/coding-standard-magento2": "^2.0.0",
+        "phpstan/extension-installer": "^1.3",
+        "bitexpert/phpstan-magento": "^0.30.1"
     },
     "type": "magento2-module",
     "replace": {
@@ -18,5 +26,36 @@
         "psr-4": {
             "Tweakwise\\AttributeLandingTweakwise\\": "src"
         }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://repo.magento.com/"
+        }
+    ],
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "magento/composer-dependency-version-audit-plugin": true,
+            "youwe/coding-standard-phpstorm": true,
+            "phpro/grumphp-shim": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "youwe/testing-suite": true,
+            "phpstan/extension-installer": true
+        }
+    },
+    "archive": {
+        "exclude": [
+            "/.gitignore",
+            "/grumphp.yml",
+            "/pdepend.xml",
+            "/phpstan.neon",
+            "/phpunit.xml",
+            "/phpcs.xml",
+            "/phpmd.xml",
+            "/package.json",
+            "/.eslintrc.json",
+            "/.eslintignore"
+        ]
     }
 }

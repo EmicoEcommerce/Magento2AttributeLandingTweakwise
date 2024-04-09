@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
@@ -78,7 +79,8 @@ class UrlPlugin
             return $proceed($filterItem);
         }
 
-        if ($url = $this->filterManager->findLandingPageUrlForFilterItem($filterItem)) {
+        $url = $this->filterManager->findLandingPageUrlForFilterItem($filterItem);
+        if ($url) {
             return $url;
         }
 

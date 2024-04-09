@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
@@ -43,11 +44,13 @@ class FilterHelperPlugin
      */
     public function aroundShouldPageBeIndexable(FilterHelper $helper, callable $proceed): bool
     {
-        if ($this->landingPageContext->isOnLandingPage() &&
+        if (
+            $this->landingPageContext->isOnLandingPage() &&
             \count($this->filterManager->getActiveFiltersExcludingLandingPageFilters()) === 0
         ) {
             return true;
         }
+
         return $proceed();
     }
 
@@ -61,6 +64,7 @@ class FilterHelperPlugin
         if ($this->landingPageContext->isOnLandingPage()) {
             return $this->filterManager->getActiveFiltersExcludingLandingPageFilters();
         }
+
         return $proceed();
     }
 

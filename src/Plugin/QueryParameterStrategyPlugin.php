@@ -4,6 +4,7 @@
  * @author : Edwin Jacobs, email: ejacobs@emico.nl.
  * @copyright : Copyright Emico B.V. 2020.
  */
+
 namespace Tweakwise\AttributeLandingTweakwise\Plugin;
 
 use Emico\AttributeLanding\Model\LandingPageContext;
@@ -55,6 +56,8 @@ class QueryParameterStrategyPlugin
      * @param QueryParameterStrategy $original
      * @param string $result
      * @return string
+     *
+     * phpcs:disable Magento2.Functions.DiscouragedFunction.Discouraged
      */
     public function afterGetCategoryFilterSelectUrl(
         QueryParameterStrategy $original,
@@ -98,8 +101,11 @@ class QueryParameterStrategyPlugin
     /**
      * {@inheritdoc}
      */
-    public function afterGetAttributeFilters(QueryParameterStrategy $original, array $result, MagentoHttpRequest $request)
-    {
+    public function afterGetAttributeFilters(
+        QueryParameterStrategy $original,
+        array $result,
+        MagentoHttpRequest $request
+    ) {
         $landingPage = $this->landingPageContext->getLandingPage();
         if ($landingPage === null) {
             return $result;
@@ -112,7 +118,7 @@ class QueryParameterStrategyPlugin
             if (isset($result[$filter->getFacet()])) {
                 foreach ($result[$filter->getFacet()] as $key => $value) {
                     if ($value == $filter->getValue()) {
-                        unset ($result[$filter->getFacet()][$key]);
+                        unset($result[$filter->getFacet()][$key]);
                     }
                 }
             }

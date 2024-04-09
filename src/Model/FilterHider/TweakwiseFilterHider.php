@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
@@ -26,8 +27,7 @@ class TweakwiseFilterHider implements FilterHiderInterface
         LandingPageInterface $landingPage,
         FilterInterface $filter,
         Item $filterItem = null
-    ): bool
-    {
+    ): bool {
         if (!$filter instanceof TweakwiseFilter) {
             return false;
         }
