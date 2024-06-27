@@ -116,7 +116,9 @@ class UrlPlugin
         if (preg_match('|' . $landingPage->getUrlRewriteRequestPath() . '(.*)|', $removeUrl, $matches)) {
             $category = $this->getLayer()->getCurrentCategory();
             $categoryUrl = $category->getUrl();
-            $removeUrl = $categoryUrl . $matches[1];
+
+            //ensure there is one slash between category and the rest of the url
+            $removeUrl = rtrim($categoryUrl, '/') . '/' . ltrim($matches[1], '/');
         }
 
         return $removeUrl;
