@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -101,9 +101,10 @@ class PathSlugStrategyPlugin
 
         $filters = $this->filterManager->getActiveFiltersExcludingLandingPageFilters();
         foreach ($filters as $key => $activeItem) {
-            if ($activeItem->getFilter()->getUrlKey() === $item->getFilter()->getUrlKey()) {
-                unset($filters[$key]);
+            if ($activeItem->getFilter()->getUrlKey() !== $item->getFilter()->getUrlKey()) {
+                continue;
             }
+            unset($filters[$key]);
         }
 
         $attribute = clone $item->getAttribute();
@@ -139,9 +140,10 @@ class PathSlugStrategyPlugin
         }
 
         foreach ($filters as $key => $activeItem) {
-            if ($activeItem === $item) {
-                unset($filters[$key]);
+            if ($activeItem !== $item) {
+                continue;
             }
+            unset($filters[$key]);
         }
 
         return $pathSlugStrategy->buildFilterUrl($request, $filters);

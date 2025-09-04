@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -52,9 +52,10 @@ class TweakwiseFilterApplier implements FilterApplierInterface
         }
 
         $builderTemplateId = $page->getTweakwiseBuilderTemplate();
-        if ($builderTemplateId) {
-            $navigationRequest->setBuilderTemplateId((int)$builderTemplateId);
+        if (!$builderTemplateId) {
+            return;
         }
+        $navigationRequest->setBuilderTemplateId((int)$builderTemplateId);
     }
 
     /**

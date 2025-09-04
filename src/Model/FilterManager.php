@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -132,14 +132,16 @@ class FilterManager
             /** @var string|int $index  */
             foreach ($filters as $index => $filterItem) {
                 if (
-                    $this->filterHider->shouldHideFilter(
+                    !$this->filterHider->shouldHideFilter(
                         $landingPage,
                         $filterItem->getFilter(),
                         $filterItem
                     )
                 ) {
-                    unset($filters[$index]);
+                    continue;
                 }
+
+                unset($filters[$index]);
             }
 
             $this->activeFiltersExcludingLandingPageFilters = $filters;

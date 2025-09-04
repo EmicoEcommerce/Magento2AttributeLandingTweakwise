@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author : Edwin Jacobs, email: ejacobs@emico.nl.
@@ -9,10 +9,8 @@ namespace Tweakwise\AttributeLandingTweakwise\Plugin;
 
 use Emico\AttributeLanding\Model\LandingPageContext;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
-use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Filter\Item;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\Strategy\QueryParameterStrategy;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\UrlModel;
-use Tweakwise\Magento2Tweakwise\Model\Client\Type\FacetType\SettingsType;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
 use Magento\Framework\Url;
 
@@ -80,13 +78,13 @@ class QueryParameterStrategyPlugin
             return $result;
         }
 
-        $urlParts = parse_url($result) ?: null;
+        $urlParts = parse_url($result) ? parse_url($result) : null;
         if (!$urlParts) {
             return $result;
         }
 
         $query = [];
-        $queryPart = $urlParts['query'] ?? '';
+        $queryPart = isset($urlParts['query']) ? $urlParts['query'] : '';
         // Parse the current query parameters as string
         parse_str($queryPart, $query);
 
@@ -119,12 +117,15 @@ class QueryParameterStrategyPlugin
 
         //hide landingspage filters in url
         foreach ($filters as $filter) {
-            if (isset($result[$filter->getFacet()])) {
-                foreach ($result[$filter->getFacet()] as $key => $value) {
-                    if ($value == $filter->getValue()) {
-                        unset($result[$filter->getFacet()][$key]);
-                    }
+            if (!isset($result[$filter->getFacet()])) {
+                continue;
+            }
+            foreach ($result[$filter->getFacet()] as $key => $value) {
+                // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedNotEqualOperator
+                if ($value != $filter->getValue()) {
+                    continue;
                 }
+                unset($result[$filter->getFacet()][$key]);
             }
         }
 

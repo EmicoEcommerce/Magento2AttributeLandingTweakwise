@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 namespace Tweakwise\AttributeLandingTweakwise\Plugin\Model;
 
@@ -7,7 +7,6 @@ use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
 use Tweakwise\Magento2Tweakwise\Model\AjaxNavigationResult;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\UrlModel;
-use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\Strategy\PathSlugStrategy;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
 
 class AjaxNavigationResultPlugin
@@ -60,9 +59,7 @@ class AjaxNavigationResultPlugin
         // @phpstan-ignore-next-line
         if ($type === 'landingpage' && $this->landingPageContext->getLandingPage()) {
             $filters = $this->filterManager->getActiveFiltersExcludingLandingPageFilters();
-            $url = $this->url->getFilterUrl($filters);
-
-            return $url;
+            return $this->url->getFilterUrl($filters);
         }
 
         return $proceed();

@@ -9,87 +9,15 @@ grumphp:
       triggered_by:
         - php
       level: 7
-      ignore_patterns:
-        - "vendor"
-        - "generated"
-        - "setup"
-        - "update"
-        - "dev"
-        - "tests"
-        - "public"
-        - "backend/vendor"
-        - "backend/generated"
-        - "backend/setup"
-        - "backend/update"
-        - "backend/tests"
-        - "backend/dev"
-        - "deploy.php"
-        - "deploy"
-        - "magento/vendor"
-        - "magento/generated"
-        - "magento/setup"
-        - "magento/update"
-        - "magento/tests/_support/_generated"
-        - "magento/dev"
-        - "LocalValetDriver.php"
       configuration: phpstan.neon
     phpmd:
       triggered_by:
         - php
       ruleset:
         - "ruleset.xml"
-      exclude:
-        - "vendor"
-        - "generated"
-        - "setup"
-        - "update"
-        - "dev"
-        - "public"
-        - "deploy"
-        - "tests/_support/_generated"
-        - "app/etc/config.php"
-        - "backend/vendor"
-        - "backend/generated"
-        - "backend/setup"
-        - "backend/update"
-        - "backend/update"
-        - "backend/dev"
-        - "backend/tests/_support/_generated"
-        - "backend/app/etc/config.php"
-        - "magento/app/etc/config.php"
-        - "magento/vendor"
-        - "magento/generated"
-        - "magento/setup"
-        - "magento/update"
-        - "magento/tests/_support/_generated"
-        - "magento/dev"
     phpcs:
       triggered_by:
         - php
-      ignore_patterns:
-        - "vendor"
-        - "generated"
-        - "setup"
-        - "update"
-        - "dev"
-        - "public"
-        - "deploy"
-        - "tests/_support/_generated"
-        - "app/etc/config.php"
-        - "backend/vendor"
-        - "backend/generated"
-        - "backend/setup"
-        - "backend/update"
-        - "backend/dev"
-        - "backend/tests/_support/_generated"
-        - "backend/app/etc/config.php"
-        - "magento/app/etc/config.php"
-        - "magento/vendor"
-        - "magento/generated"
-        - "magento/setup"
-        - "magento/update"
-        - "magento/tests/_support/_generated"
-        - "magento/dev"
 
     xmllint:
       triggered_by: [ 'xml', 'xsd' ]
@@ -100,30 +28,6 @@ grumphp:
 
     phplint:
       short_open_tag: true
-      ignore_patterns:
-        - "vendor"
-        - "generated"
-        - "setup"
-        - "update"
-        - "dev"
-        - "public"
-        - "deploy"
-        - "tests/_support/_generated"
-        - "app/etc/config.php"
-        - "backend/vendor"
-        - "backend/generated"
-        - "backend/setup"
-        - "backend/update"
-        - "backend/dev"
-        - "backend/tests/_support/_generated"
-        - "backend/app/etc/config.php"
-        - "magento/app/etc/config.php"
-        - "magento/vendor"
-        - "magento/generated"
-        - "magento/setup"
-        - "magento/update"
-        - "magento/tests/_support/_generated"
-        - "magento/dev"
 
     composer:
       no_check_publish: true
