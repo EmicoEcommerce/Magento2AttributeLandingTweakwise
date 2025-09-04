@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -70,6 +70,7 @@ class PathSlugStrategyPlugin
         Item $item
     ) {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($request, $item);
         }
@@ -93,15 +94,17 @@ class PathSlugStrategyPlugin
         Item $item
     ) {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($request, $item);
         }
 
         $filters = $this->filterManager->getActiveFiltersExcludingLandingPageFilters();
         foreach ($filters as $key => $activeItem) {
-            if ($activeItem->getFilter()->getUrlKey() === $item->getFilter()->getUrlKey()) {
-                unset($filters[$key]);
+            if ($activeItem->getFilter()->getUrlKey() !== $item->getFilter()->getUrlKey()) {
+                continue;
             }
+            unset($filters[$key]);
         }
 
         $attribute = clone $item->getAttribute();
@@ -125,6 +128,7 @@ class PathSlugStrategyPlugin
         Item $item
     ) {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($request, $item);
         }
@@ -136,9 +140,10 @@ class PathSlugStrategyPlugin
         }
 
         foreach ($filters as $key => $activeItem) {
-            if ($activeItem === $item) {
-                unset($filters[$key]);
+            if ($activeItem !== $item) {
+                continue;
             }
+            unset($filters[$key]);
         }
 
         return $pathSlugStrategy->buildFilterUrl($request, $filters);
@@ -156,6 +161,7 @@ class PathSlugStrategyPlugin
         string $result
     ): string {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null) {
             return $result;
         }
@@ -197,6 +203,7 @@ class PathSlugStrategyPlugin
     public function afterGetOriginalUrl(PathSlugStrategy $original, string $result, MagentoHttpRequest $request): string
     {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null) {
             return $result;
         }

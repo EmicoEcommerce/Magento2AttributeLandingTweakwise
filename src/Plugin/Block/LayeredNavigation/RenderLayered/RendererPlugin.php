@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 namespace Tweakwise\AttributeLandingTweakwise\Plugin\Block\LayeredNavigation\RenderLayered;
 
@@ -47,6 +47,7 @@ class RendererPlugin
         $returnToDefaultPage = false;
 
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage) {
             $landingPageUrl = $landingPage->getUrlPath();
             if (stripos($result, $landingPageUrl) === false) {

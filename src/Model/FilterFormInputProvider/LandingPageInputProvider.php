@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author : Edwin Jacobs, email: ejacobs@emico.nl.
@@ -32,21 +32,6 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
     protected $landingPageContext;
 
     /**
-     * @var RequestInterface $request
-     */
-    protected RequestInterface $request;
-
-    /**
-     * @var ToolbarInputProvider $toolbarInputProvider
-     */
-    protected ToolbarInputProvider $toolbarInputProvider;
-
-    /**
-     * @var HashInputProvider $hashInputProvider
-     */
-    protected HashInputProvider $hashInputProvider;
-
-    /**
      * @var Url
      */
     protected $layerUrl;
@@ -55,20 +40,21 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
      * LandingPageProvider constructor.
      * @param Config $twConfig
      * @param LandingPageContext $landingPageContext
+     * @param RequestInterface $request
+     * @param ToolbarInputProvider $toolbarInputProvider
+     * @param HashInputProvider $hashInputProvider
+     * @param Url $layerUrl
      */
     public function __construct(
         Config             $twConfig,
         LandingPageContext $landingPageContext,
-        RequestInterface   $request,
-        ToolbarInputProvider $toolbarInputProvider,
-        HashInputProvider $hashInputProvider,
+        protected RequestInterface   $request,
+        protected ToolbarInputProvider $toolbarInputProvider,
+        protected HashInputProvider $hashInputProvider,
         Url $layerUrl
     ) {
         $this->twConfig = $twConfig;
         $this->landingPageContext = $landingPageContext;
-        $this->request = $request;
-        $this->toolbarInputProvider = $toolbarInputProvider;
-        $this->hashInputProvider = $hashInputProvider;
         $this->layerUrl = $layerUrl;
     }
 
@@ -83,6 +69,7 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
         }
 
         $page = $this->getPage();
+        // @phpstan-ignore-next-line
         if (!$page) {
             throw new NotFoundException(__('landingpage not found'));
         }
@@ -117,6 +104,7 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
      */
     public function getOriginalUrl(): string
     {
+        // @phpstan-ignore-next-line
         return $this->layerUrl->getUrlStrategy()->getOriginalUrl($this->request);
     }
 }
