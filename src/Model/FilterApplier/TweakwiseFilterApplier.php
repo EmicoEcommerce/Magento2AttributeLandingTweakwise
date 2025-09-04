@@ -53,7 +53,7 @@ class TweakwiseFilterApplier implements FilterApplierInterface
 
         $builderTemplateId = $page->getTweakwiseBuilderTemplate();
         if ($builderTemplateId) {
-            $navigationRequest->setBuilderTemplateId($builderTemplateId);
+            $navigationRequest->setBuilderTemplateId((int)$builderTemplateId);
         }
     }
 

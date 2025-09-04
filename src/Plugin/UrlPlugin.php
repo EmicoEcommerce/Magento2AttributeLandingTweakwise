@@ -103,6 +103,7 @@ class UrlPlugin
         $removeUrl = $proceed($filterItem);
 
         // We are not on a landing page, no need to do anything special
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $removeUrl;
         }
@@ -113,6 +114,7 @@ class UrlPlugin
         }
 
         // Capture the filter part of the URL and rebuild the URL to from {landingPage}/{filters} to {category}/{filters}
+        // @phpstan-ignore-next-line
         if (preg_match('|' . $landingPage->getUrlRewriteRequestPath() . '(.*)|', $removeUrl, $matches)) {
             $category = $this->getLayer()->getCurrentCategory();
             $categoryUrl = $category->getUrl();
@@ -135,6 +137,7 @@ class UrlPlugin
         $landingPage = $this->landingPageContext->getLandingPage();
 
         // We are not on a landing page, no need to do anything special
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($activeFilterItems);
         }

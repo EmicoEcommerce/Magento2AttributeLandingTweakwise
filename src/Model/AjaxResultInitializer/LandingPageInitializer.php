@@ -97,7 +97,7 @@ class LandingPageInitializer implements InitializerInterface
     /**
      * @param AjaxNavigationResult $ajaxNavigationResult
      */
-    protected function initializeLayout(AjaxNavigationResult $ajaxNavigationResult)
+    protected function initializeLayout(AjaxNavigationResult $ajaxNavigationResult): void
     {
         $ajaxNavigationResult->addHandle(self::LAYOUT_HANDLE_LANDINGPAGE);
     }
@@ -105,7 +105,7 @@ class LandingPageInitializer implements InitializerInterface
     /**
      * Create category layer
      */
-    protected function initializeLayer()
+    protected function initializeLayer(): void
     {
         $this->layerResolver->create(Resolver::CATALOG_LAYER_CATEGORY);
     }
@@ -115,7 +115,7 @@ class LandingPageInitializer implements InitializerInterface
      * @throws NoSuchEntityException
      * @throws NotFoundException
      */
-    private function initializePage(RequestInterface $request)
+    private function initializePage(RequestInterface $request): void
     {
         $pageId = (int)$request->getParam('__tw_object_id');
         if (!$pageId) {

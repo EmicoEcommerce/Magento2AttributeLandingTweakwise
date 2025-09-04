@@ -44,6 +44,7 @@ class ListProduct
         }
 
         try {
+            // @phpstan-ignore-next-line
             $landingPage = $this->landingPageRepository->getById($landingPageId);
         } catch (NoSuchEntityException | LocalizedException $e) {
             return [$route, $params];

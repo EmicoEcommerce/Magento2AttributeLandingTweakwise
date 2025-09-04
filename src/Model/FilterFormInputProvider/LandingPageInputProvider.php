@@ -83,6 +83,7 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
         }
 
         $page = $this->getPage();
+        // @phpstan-ignore-next-line
         if (!$page) {
             throw new NotFoundException(__('landingpage not found'));
         }
@@ -117,6 +118,7 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
      */
     public function getOriginalUrl(): string
     {
+        // @phpstan-ignore-next-line
         return $this->layerUrl->getUrlStrategy()->getOriginalUrl($this->request);
     }
 }

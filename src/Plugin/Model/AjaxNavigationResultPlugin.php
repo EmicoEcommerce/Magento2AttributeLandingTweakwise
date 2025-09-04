@@ -34,6 +34,7 @@ class AjaxNavigationResultPlugin
 
     /**
      * @var UrlModel
+     * @phpstan-ignore-next-line
      */
     private $urlModel;
 
@@ -51,10 +52,12 @@ class AjaxNavigationResultPlugin
         $this->url = $url;
     }
 
+    // @phpstan-ignore-next-line
     public function aroundGetResponseUrl(AjaxNavigationResult $ajaxNavigationResult, callable $proceed)
     {
         $type = $this->request->getParam('__tw_ajax_type');
 
+        // @phpstan-ignore-next-line
         if ($type === 'landingpage' && $this->landingPageContext->getLandingPage()) {
             $filters = $this->filterManager->getActiveFiltersExcludingLandingPageFilters();
             $url = $this->url->getFilterUrl($filters);

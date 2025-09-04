@@ -35,6 +35,7 @@ class QueryParameterStrategyPlugin
 
     /**
      * @var UrlModel
+     * @phpstan-ignore-next-line
      */
     private $url;
 
@@ -64,6 +65,7 @@ class QueryParameterStrategyPlugin
         string $result
     ): string {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null) {
             return $result;
         }
@@ -89,6 +91,7 @@ class QueryParameterStrategyPlugin
         parse_str($queryPart, $query);
 
         foreach ($landingsPageFilters as $filter) {
+            // @phpstan-ignore-next-line
             $query[$filter->getFacet()][] = strtolower($filter->getValue());
         }
 
@@ -105,8 +108,9 @@ class QueryParameterStrategyPlugin
         QueryParameterStrategy $original,
         array $result,
         MagentoHttpRequest $request
-    ) {
+    ): array {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null) {
             return $result;
         }

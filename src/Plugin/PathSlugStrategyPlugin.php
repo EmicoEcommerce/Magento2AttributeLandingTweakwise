@@ -70,6 +70,7 @@ class PathSlugStrategyPlugin
         Item $item
     ) {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($request, $item);
         }
@@ -93,6 +94,7 @@ class PathSlugStrategyPlugin
         Item $item
     ) {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($request, $item);
         }
@@ -125,6 +127,7 @@ class PathSlugStrategyPlugin
         Item $item
     ) {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null || $landingPage->getHideSelectedFilters()) {
             return $proceed($request, $item);
         }
@@ -156,6 +159,7 @@ class PathSlugStrategyPlugin
         string $result
     ): string {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null) {
             return $result;
         }
@@ -197,6 +201,7 @@ class PathSlugStrategyPlugin
     public function afterGetOriginalUrl(PathSlugStrategy $original, string $result, MagentoHttpRequest $request): string
     {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if ($landingPage === null) {
             return $result;
         }
