@@ -127,7 +127,7 @@ class LandingPageResolver implements RewriteResolverInterface
             return $paths;
         }
 
-        return array_map(
+        $pathsWithSuffix = array_map(
             static function (string $path) use ($categoryUrlSuffix): string {
                 // Check if path ends with category url suffix, if not add it.
                 if (substr($path, -strlen($categoryUrlSuffix)) !== $categoryUrlSuffix) {
@@ -138,5 +138,7 @@ class LandingPageResolver implements RewriteResolverInterface
             },
             $paths
         );
+
+        return array_merge($paths, $pathsWithSuffix);
     }
 }
