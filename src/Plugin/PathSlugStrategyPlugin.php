@@ -174,10 +174,11 @@ class PathSlugStrategyPlugin
         $filters = [];
         foreach ($landingsPageFilters as $filter) {
             $filters[] = $filter->getFacet();
-            if (!empty($lookupTable[$filter->getValue()])) {
-                $filters[] = $lookupTable[$filter->getValue()];
+            $attribute = strtolower($filter->getValue());
+            if (!empty($lookupTable[$attribute])) {
+                $filters[] = $lookupTable[$attribute];
             } else {
-                $filters[] = strtolower($filter->getValue());
+                $filters[] = $attribute;
             }
         }
 
