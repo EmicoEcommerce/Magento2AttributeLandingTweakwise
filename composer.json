@@ -8,7 +8,7 @@
         "tweakwise/magento2-tweakwise": ">=8.4.0"
     },
     "require-dev": {
-        "emico/code-quality": "^10.5",
+        "emico/code-quality": "~10.6.0",
         "symfony/finder": "^6.4.0"
     },
     "type": "magento2-module",

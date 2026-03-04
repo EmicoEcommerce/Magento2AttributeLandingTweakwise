@@ -161,12 +161,12 @@ class FilterManager
 
         $filterItems = $this->getLayer()->getState()->getFilters();
         // @phpstan-ignore-next-line
-        if (!\is_array($filterItems)) {
+        if (!is_array($filterItems)) {
             return [];
         }
 
         // Do not consider category as active
-        $filterItems = \array_filter(
+        $filterItems = array_filter(
             $filterItems,
             // @phpstan-ignore-next-line
             function (Item $filter) {
