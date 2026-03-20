@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <type name="Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\Facets">
+        <arguments>
+            <argument name="requestFactory" xsi:type="object">
+                Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory\FacetRequest
+            </argument>
+        </arguments>
+    </type>
+    <type name="Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\FacetAttributes">
+        <arguments>
+            <argument name="requestFactory" xsi:type="object">
+                Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory\FacetAttributeRequest
+            </argument>
+        </arguments>
+    </type>
+</config>
