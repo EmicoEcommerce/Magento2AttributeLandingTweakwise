@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author : Edwin Jacobs, email: ejacobs@emico.nl.
@@ -106,7 +106,7 @@ class LandingPageResolver implements RewriteResolverInterface
         $pathParts = explode('/', $fullUriPath);
         $lastPathPart = array_shift($pathParts);
         $paths[] = $lastPathPart;
-        foreach ($pathParts as $i => $pathPart) {
+        foreach ($pathParts as $pathPart) {
             $lastPathPart .= '/' . $pathPart;
             $paths[] = $lastPathPart;
         }

@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -26,7 +26,7 @@ class TweakwiseFilterHider implements FilterHiderInterface
     public function shouldHideFilter(
         LandingPageInterface $landingPage,
         FilterInterface $filter,
-        Item $filterItem = null
+        ?Item $filterItem = null
     ): bool {
         if (!$filter instanceof TweakwiseFilter) {
             return false;

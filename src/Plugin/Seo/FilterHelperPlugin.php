@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -46,7 +46,7 @@ class FilterHelperPlugin
     {
         if (
             $this->landingPageContext->isOnLandingPage() &&
-            \count($this->filterManager->getActiveFiltersExcludingLandingPageFilters()) === 0
+            count($this->filterManager->getActiveFiltersExcludingLandingPageFilters()) === 0
         ) {
             return true;
         }

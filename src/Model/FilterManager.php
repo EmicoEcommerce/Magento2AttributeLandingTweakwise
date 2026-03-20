@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
  * @author Bram Gerritsen <bgerritsen@emico.nl>
@@ -93,6 +93,7 @@ class FilterManager
             SORT_REGULAR
         );
 
+        // @phpstan-ignore-next-line
         $url = $this->urlFinder->findUrlByFilters($filters, $layer->getCurrentCategory()->getEntityId());
         if ($url) {
             return $url;
@@ -107,6 +108,7 @@ class FilterManager
     public function getLandingsPageFilters()
     {
         $landingsPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if (!$landingsPage) {
             return [];
         }
@@ -122,6 +124,7 @@ class FilterManager
         if ($this->activeFiltersExcludingLandingPageFilters === null) {
             $filters = $this->getAllActiveFilters();
             $landingPage = $this->landingPageContext->getLandingPage();
+            // @phpstan-ignore-next-line
             if ($landingPage === null) {
                 return $filters;
             }
@@ -129,14 +132,16 @@ class FilterManager
             /** @var string|int $index  */
             foreach ($filters as $index => $filterItem) {
                 if (
-                    $this->filterHider->shouldHideFilter(
+                    !$this->filterHider->shouldHideFilter(
                         $landingPage,
                         $filterItem->getFilter(),
                         $filterItem
                     )
                 ) {
-                    unset($filters[$index]);
+                    continue;
                 }
+
+                unset($filters[$index]);
             }
 
             $this->activeFiltersExcludingLandingPageFilters = $filters;
@@ -155,13 +160,15 @@ class FilterManager
         }
 
         $filterItems = $this->getLayer()->getState()->getFilters();
-        if (!\is_array($filterItems)) {
+        // @phpstan-ignore-next-line
+        if (!is_array($filterItems)) {
             return [];
         }
 
         // Do not consider category as active
-        $filterItems = \array_filter(
+        $filterItems = array_filter(
             $filterItems,
+            // @phpstan-ignore-next-line
             function (Item $filter) {
                 $source = $filter
                 ->getFilter()
@@ -172,6 +179,7 @@ class FilterManager
             }
         );
         $this->activeFilters = $filterItems;
+        // @phpstan-ignore-next-line
         return $this->activeFilters;
     }
 
