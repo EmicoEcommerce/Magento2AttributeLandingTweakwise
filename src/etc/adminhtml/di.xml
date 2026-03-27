@@ -1,17 +1,34 @@
 <?xml version="1.0" ?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <virtualType name="Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\FacetRequest"
+                 type="Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory">
+        <arguments>
+            <argument name="type" xsi:type="string">
+                Tweakwise\AttributeLandingTweakwise\Model\Client\Request\FacetRequest
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\FacetAttributeRequest"
+                 type="Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory">
+        <arguments>
+            <argument name="type" xsi:type="string">
+                Tweakwise\AttributeLandingTweakwise\Model\Client\Request\FacetAttributeRequest
+            </argument>
+        </arguments>
+    </virtualType>
+
     <type name="Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\Facets">
         <arguments>
             <argument name="requestFactory" xsi:type="object">
-                Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory\FacetRequest
+                Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\FacetRequest
             </argument>
         </arguments>
     </type>
     <type name="Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\FacetAttributes">
         <arguments>
             <argument name="requestFactory" xsi:type="object">
-                Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory\FacetAttributeRequest
+                Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\FacetAttributeRequest
             </argument>
         </arguments>
     </type>

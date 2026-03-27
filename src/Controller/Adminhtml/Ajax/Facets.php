@@ -12,10 +12,10 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Tweakwise\AttributeLandingTweakwise\ApiClient\BackendApiClient;
+use Tweakwise\AttributeLandingTweakwise\Model\Client\Response\FacetResponse;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
 use Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory;
-use Tweakwise\Magento2Tweakwise\Model\Client\Response\FacetResponse;
 use Tweakwise\Magento2TweakwiseExport\Model\Helper;
 
 class Facets extends AbstractFacetController
