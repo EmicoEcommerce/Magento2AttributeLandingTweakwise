@@ -120,7 +120,7 @@ class BackendApiClient
                 ];
             }
 
-            $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], self::CACHE_LIFETIME);
+            $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
 
             return $attributes;
         } catch (GuzzleException | Exception $e) {
@@ -135,12 +135,72 @@ class BackendApiClient
     }
 
     /**
+     * @param string $attributeCode
+     * @param Store $store
+     * @return int|null
+     */
+    public function getAttributeIdByCode(string $attributeCode, Store $store): ?int
+    {
+        $attributes = $this->getAttributes($store);
+        $index = array_search($attributeCode, array_column($attributes, 'value'), true);
+
+        return $index !== false ? (int)$attributes[$index]['id'] : null;
+    }
+
+    /**
+     * @param int $attributeId
+     * @param Store $store
+     * @return array
+     */
+    public function getAttributeValues(int $attributeId, Store $store): array
+    {
+        $cacheKey = $this->getCacheKey('attribute_values', (int)$store->getId(), $attributeId);
+        if ($this->cacheExists($cacheKey)) {
+            return $this->getFromCache($cacheKey);
+        }
+
+        $attributeValues = [];
+        try {
+            $response = $this->doRequest(sprintf('attribute/%s/values', $attributeId), $store);
+            $contents = $response->getBody()->getContents();
+            $result = $this->jsonSerializer->unserialize($contents);
+
+            if (!isset($result['Records'])) {
+                return [];
+            }
+
+            foreach ($result['Records'] as $record) {
+                $attributeValues[] = [
+                    'value' => $record['Value'],
+                    'label' => $record['Value'],
+                ];
+            }
+
+            $this->cache->save($this->jsonSerializer->serialize($attributeValues), $cacheKey, [], $this->getCacheLifetime());
+
+            return $attributeValues;
+        } catch (GuzzleException | Exception $e) {
+            $this->logger->critical(
+                'Retrieving attribute valus from Tweakiwse Backend API failed',
+                [
+                    'exception' => $e->getMessage()
+                ]
+            );
+            return [];
+        }
+    }
+
+    /**
      * @param string $type
      * @param int $storeId
+     * @param int|null $attributeId
      * @return string
      */
-    private function getCacheKey(string $type, int $storeId): string
+    private function getCacheKey(string $type, int $storeId, ?int $attributeId = null): string
     {
+        if ($attributeId) {
+            return sprintf('tweakwise_backend_api_result_%s_%s_%s', $type, $attributeId, $storeId);
+        }
         return sprintf('tweakwise_backend_api_result_%s_%s', $type, $storeId);
     }
 
@@ -161,5 +221,14 @@ class BackendApiClient
     private function getFromCache(string $cacheKey): array
     {
         return (array)$this->jsonSerializer->unserialize($this->cache->load($cacheKey));
+    }
+
+    /**
+     * Protected function added so that cache lifetime is overwritable
+     * @return int
+     */
+    protected function getCacheLifetime(): int
+    {
+        return self::CACHE_LIFETIME;
     }
 }

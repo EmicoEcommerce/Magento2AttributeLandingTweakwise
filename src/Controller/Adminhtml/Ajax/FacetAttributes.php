@@ -65,7 +65,7 @@ class FacetAttributes extends AbstractFacetController
         /** @var Store $store */
         foreach ($this->storeManager->getStores() as $store) {
             if ($this->isBackendApiEnabled($store)) {
-                $attributeValues = array_merge($this->executeBackendApiRequest($store), $attributeValues);
+                $attributeValues = array_merge($this->executeBackendApiRequest($store, $facetKey), $attributeValues);
                 continue;
             }
 
@@ -126,10 +126,20 @@ class FacetAttributes extends AbstractFacetController
 
     /**
      * @param Store $store
+     * @param string|null $facetKey
      * @return array
      */
-    private function executeBackendApiRequest(Store $store): array
+    private function executeBackendApiRequest(Store $store, ?string $facetKey): array
     {
-        return [$store->getId()];
+        if (!$facetKey) {
+            return [];
+        }
+
+        $attributeId = $this->backendApiClient->getAttributeIdByCode($facetKey, $store);
+        if (!$attributeId) {
+            return [];
+        }
+
+        return $this->backendApiClient->getAttributeValues($attributeId, $store);
     }
 }
