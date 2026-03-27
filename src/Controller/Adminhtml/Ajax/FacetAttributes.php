@@ -10,6 +10,8 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Tweakwise\AttributeLandingTweakwise\ApiClient\BackendApiClient;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
@@ -46,18 +48,45 @@ class FacetAttributes extends AbstractFacetController
 
     /**
      * @return ResponseInterface|Json|ResultInterface
-     * @throws Exception
+     * @throws LocalizedException
+     * phpcs:disable Magento2.Performance.ForeachArrayMerge.ForeachArrayMerge
      */
     public function execute()
     {
         $result = $this->resultJsonFactory->create();
         $facetKey = $this->request->getParam('facet_key');
-        $otherAttributeOption = ['value' => Facets::OTHER_ATTRIBUTE_VALUE, 'label' => 'Other (text field)'];
+        $otherAttributeOption = ['value' => self::OTHER_ATTRIBUTE_VALUE, 'label' => 'Other (text field)'];
 
-        if ($facetKey === Facets::OTHER_ATTRIBUTE_VALUE) {
+        if ($facetKey === self::OTHER_ATTRIBUTE_VALUE) {
             return $result->setData([$otherAttributeOption]);
         }
 
+        $attributeValues = [];
+        /** @var Store $store */
+        foreach ($this->storeManager->getStores() as $store) {
+            if ($this->isBackendApiEnabled($store)) {
+                $attributeValues = array_merge($this->executeBackendApiRequest($store), $attributeValues);
+                continue;
+            }
+
+            $attributeValues = array_merge($this->executeDefaultRequest((int)$store->getId(), $facetKey), $attributeValues);
+        }
+
+        $attributeValues[] = $otherAttributeOption;
+
+        $attributeValues = array_values(array_unique($attributeValues, SORT_REGULAR));
+
+        return $result->setData($attributeValues);
+    }
+
+    /**
+     * @param int $storeId
+     * @param string|null $facetKey
+     * @return array
+     * @throws Exception
+     */
+    private function executeDefaultRequest(int $storeId, ?string $facetKey): array
+    {
         $facetAttributeRequest = $this->requestFactory->create();
 
         $filterTemplate = $this->request->getParam('filter_template');
@@ -69,37 +98,38 @@ class FacetAttributes extends AbstractFacetController
             $facetAttributeRequest->addFacetKey($facetKey);
         }
 
-        $allStores = $facetAttributeRequest->getStores();
-        $attributes = [];
-        foreach ($allStores as $store) {
-            $categoryId = $this->helper->getTweakwiseId(
-                (int)$store->getId(),
-                (int) $this->request->getParam('category_id')
-            );
-            if ($categoryId) {
-                $facetAttributeRequest->setParameter('tn_cid', $categoryId);
-            }
-
-            /** @var FacetAttributesResponse $response */
-            $response = $this->client->request($facetAttributeRequest);
-
-            // @phpstan-ignore-next-line
-            if (!$response) {
-                return $result->setData([$otherAttributeOption]);
-            }
-
-            foreach ($response->getAttributes() as $attribute) {
-                $attributes[] = [
-                    'value' => $attribute['title'],
-                    'label' => $attribute['title']
-                ];
-            }
+        $categoryId = $this->helper->getTweakwiseId(
+            $storeId,
+            (int) $this->request->getParam('category_id')
+        );
+        if ($categoryId) {
+            $facetAttributeRequest->setParameter('tn_cid', $categoryId);
         }
 
-        $attributes[] = $otherAttributeOption;
+        /** @var FacetAttributesResponse $response */
+        $response = $this->client->request($facetAttributeRequest);
 
-        $attributes = array_values(array_unique($attributes, SORT_REGULAR));
+        if (!$response->getAttributes()) {
+            return [];
+        }
 
-        return $result->setData($attributes);
+        $attributes = [];
+        foreach ($response->getAttributes() as $attribute) {
+            $attributes[] = [
+                'value' => $attribute['title'],
+                'label' => $attribute['title']
+            ];
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param Store $store
+     * @return array
+     */
+    private function executeBackendApiRequest(Store $store): array
+    {
+        return [$store->getId()];
     }
 }
