@@ -11,6 +11,7 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use Tweakwise\AttributeLandingTweakwise\ApiClient\BackendApiClient;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
 use Tweakwise\Magento2Tweakwise\Model\Client\Request\FacetAttributeRequest;
@@ -23,6 +24,7 @@ class FacetAttributes extends AbstractFacetController
     /**
      * @param Config $config
      * @param StoreManagerInterface $storeManager
+     * @param BackendApiClient $backendApiClient
      * @param RequestInterface $request
      * @param JsonFactory $resultJsonFactory
      * @param Client $client
@@ -32,13 +34,14 @@ class FacetAttributes extends AbstractFacetController
     public function __construct(
         Config $config,
         StoreManagerInterface $storeManager,
+        BackendApiClient $backendApiClient,
         private readonly RequestInterface $request,
         private readonly JsonFactory $resultJsonFactory,
         private readonly Client $client,
         private readonly RequestFactory $requestFactory,
         private readonly Helper $helper,
     ) {
-        parent::__construct($config, $storeManager);
+        parent::__construct($config, $storeManager, $backendApiClient);
     }
 
     /**

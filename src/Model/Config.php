@@ -6,9 +6,9 @@ namespace Tweakwise\AttributeLandingTweakwise\Model;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\Store;
-use Tweakwise\Magento2Tweakwise\Model\Config as TweakwiseConfig;
+use Tweakwise\Magento2Tweakwise\Model\Config as BaseConfig;
 
-class Config extends TweakwiseConfig
+class Config extends BaseConfig
 {
     private const BACKEND_API_TOKEN_PATH = 'tweakwise/attribute_landing/backend_api_token';
 

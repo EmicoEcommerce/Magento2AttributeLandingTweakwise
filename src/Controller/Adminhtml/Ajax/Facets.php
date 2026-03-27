@@ -11,6 +11,7 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use Tweakwise\AttributeLandingTweakwise\ApiClient\BackendApiClient;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
 use Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory;
@@ -19,11 +20,10 @@ use Tweakwise\Magento2TweakwiseExport\Model\Helper;
 
 class Facets extends AbstractFacetController
 {
-    public const OTHER_ATTRIBUTE_VALUE = 'tw_other';
-
     /**
      * @param Config $config
      * @param StoreManagerInterface $storeManager
+     * @param BackendApiClient $backendApiClient
      * @param RequestInterface $request
      * @param JsonFactory $resultJsonFactory
      * @param Client $client
@@ -33,13 +33,14 @@ class Facets extends AbstractFacetController
     public function __construct(
         Config $config,
         StoreManagerInterface $storeManager,
+        BackendApiClient $backendApiClient,
         private readonly RequestInterface $request,
         private readonly JsonFactory $resultJsonFactory,
         private readonly Client $client,
         private readonly RequestFactory $requestFactory,
         private readonly Helper $helper,
     ) {
-        parent::__construct($config, $storeManager);
+        parent::__construct($config, $storeManager, $backendApiClient);
     }
 
     /**
@@ -55,7 +56,8 @@ class Facets extends AbstractFacetController
         /** @var Store $store */
         foreach ($this->storeManager->getStores() as $store) {
             if ($this->isBackendApiEnabled($store)) {
-                $facets = array_merge($this->executeBackendApiRequest((int)$store->getId()), $facets);
+                $facets = array_merge($this->executeBackendApiRequest($store), $facets);
+                continue;
             }
 
             $facets = array_merge($this->executeDefaultRequest((int)$store->getId()), $facets);
@@ -105,12 +107,11 @@ class Facets extends AbstractFacetController
     }
 
     /**
-     * TO DO CREATE FUNCTIONALITY
-     * @param int $storeId
+     * @param Store $store
      * @return array
      */
-    private function executeBackendApiRequest(int $storeId): array
+    private function executeBackendApiRequest(Store $store): array
     {
-        return [$storeId];
+        return $this->backendApiClient->getAttributes($store);
     }
 }
