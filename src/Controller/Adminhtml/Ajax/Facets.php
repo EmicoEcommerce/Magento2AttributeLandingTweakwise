@@ -4,23 +4,26 @@ declare(strict_types=1);
 
 namespace Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax;
 
-use Magento\Framework\App\Action\HttpPostActionInterface;
+use Exception;
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Store\Model\Store;
+use Magento\Store\Model\StoreManagerInterface;
+use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
 use Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory;
 use Tweakwise\Magento2Tweakwise\Model\Client\Response\FacetResponse;
 use Tweakwise\Magento2TweakwiseExport\Model\Helper;
 
-class Facets implements HttpPostActionInterface
+class Facets extends AbstractFacetController
 {
     public const OTHER_ATTRIBUTE_VALUE = 'tw_other';
 
     /**
+     * @param Config $config
+     * @param StoreManagerInterface $storeManager
      * @param RequestInterface $request
      * @param JsonFactory $resultJsonFactory
      * @param Client $client
@@ -28,48 +31,34 @@ class Facets implements HttpPostActionInterface
      * @param Helper $helper
      */
     public function __construct(
+        Config $config,
+        StoreManagerInterface $storeManager,
         private readonly RequestInterface $request,
         private readonly JsonFactory $resultJsonFactory,
         private readonly Client $client,
         private readonly RequestFactory $requestFactory,
         private readonly Helper $helper,
     ) {
+        parent::__construct($config, $storeManager);
     }
 
     /**
-     * @return ResponseInterface|Json|ResultInterface
-     * @throws NoSuchEntityException
+     * @return Json
+     * @throws LocalizedException
+     * phpcs:disable Magento2.Performance.ForeachArrayMerge.ForeachArrayMerge
      */
     public function execute()
     {
         $result = $this->resultJsonFactory->create();
-        $facetRequest = $this->requestFactory->create();
 
-        $filterTemplate = $this->request->getParam('filter_template');
-        if ($filterTemplate) {
-            $facetRequest->setParameter('tn_ft', $filterTemplate);
-        }
-
-        $allStores = $facetRequest->getStores();
         $facets = [];
-        foreach ($allStores as $store) {
-            $categoryId = $this->helper->getTweakwiseId(
-                (int)$store->getId(),
-                (int) $this->request->getParam('category_id')
-            );
-            if ($categoryId) {
-                $facetRequest->setParameter('tn_cid', $categoryId);
+        /** @var Store $store */
+        foreach ($this->storeManager->getStores() as $store) {
+            if ($this->isBackendApiEnabled($store)) {
+                $facets = array_merge($this->executeBackendApiRequest((int)$store->getId()), $facets);
             }
 
-            /** @var FacetResponse $response */
-            $response = $this->client->request($facetRequest);
-
-            foreach ($response->getFacets() as $facet) {
-                $facets[] = [
-                    'value' => $facet->getFacetSettings()->getUrlKey(),
-                    'label' => $facet->getFacetSettings()->getTitle()
-                ];
-            }
+            $facets = array_merge($this->executeDefaultRequest((int)$store->getId()), $facets);
         }
 
         $facets[] = ['value' => self::OTHER_ATTRIBUTE_VALUE, 'label' => 'Other (text field)'];
@@ -77,5 +66,51 @@ class Facets implements HttpPostActionInterface
         $facets = array_values(array_unique($facets, SORT_REGULAR));
 
         return $result->setData($facets);
+    }
+
+    /**
+     * @param int $storeId
+     * @return array
+     * @throws Exception
+     */
+    private function executeDefaultRequest(int $storeId): array
+    {
+        $facetRequest = $this->requestFactory->create();
+
+        $filterTemplate = $this->request->getParam('filter_template');
+        if ($filterTemplate) {
+            $facetRequest->setParameter('tn_ft', $filterTemplate);
+        }
+
+        $categoryId = $this->helper->getTweakwiseId(
+            $storeId,
+            (int) $this->request->getParam('category_id')
+        );
+        if ($categoryId) {
+            $facetRequest->setParameter('tn_cid', $categoryId);
+        }
+
+        /** @var FacetResponse $response */
+        $response = $this->client->request($facetRequest);
+
+        $facets = [];
+        foreach ($response->getFacets() as $facet) {
+            $facets[] = [
+                'value' => $facet->getFacetSettings()->getUrlKey(),
+                'label' => $facet->getFacetSettings()->getTitle()
+            ];
+        }
+
+        return $facets;
+    }
+
+    /**
+     * TO DO CREATE FUNCTIONALITY
+     * @param int $storeId
+     * @return array
+     */
+    private function executeBackendApiRequest(int $storeId): array
+    {
+        return [$storeId];
     }
 }

@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax;
 
 use Exception;
-use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Store\Model\StoreManagerInterface;
+use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
 use Tweakwise\Magento2Tweakwise\Model\Client\Request\FacetAttributeRequest;
 use Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory;
 use Tweakwise\Magento2Tweakwise\Model\Client\Response\FacetAttributesResponse;
 use Tweakwise\Magento2TweakwiseExport\Model\Helper;
 
-class FacetAttributes implements HttpPostActionInterface
+class FacetAttributes extends AbstractFacetController
 {
     /**
+     * @param Config $config
+     * @param StoreManagerInterface $storeManager
      * @param RequestInterface $request
      * @param JsonFactory $resultJsonFactory
      * @param Client $client
@@ -27,12 +30,15 @@ class FacetAttributes implements HttpPostActionInterface
      * @param Helper $helper
      */
     public function __construct(
+        Config $config,
+        StoreManagerInterface $storeManager,
         private readonly RequestInterface $request,
         private readonly JsonFactory $resultJsonFactory,
         private readonly Client $client,
         private readonly RequestFactory $requestFactory,
         private readonly Helper $helper,
     ) {
+        parent::__construct($config, $storeManager);
     }
 
     /**

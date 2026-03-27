@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="tweakwise">
+            <group id="attribute_landing" translate="label" type="text" sortOrder="70" showInDefault="1"
+                   showInWebsite="1" showInStore="1">
+                <label>Attribute Landing Pages</label>
+                <field id="backend_api_token" translate="label" type="password" sortOrder="10" showInDefault="1"
+                       showInWebsite="1" showInStore="1">
+                    <label>Backend API Access Token</label>
+                    <comment>OPTIONAL: Enter the backend API token only if you want to use the Tweakwise backend API to
+                        retrieve attributes when creating attribute landing pages.
+                    </comment>
+                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
