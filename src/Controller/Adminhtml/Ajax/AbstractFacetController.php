@@ -32,7 +32,7 @@ abstract class AbstractFacetController implements HttpPostActionInterface
      * @return bool
      * @throws LocalizedException
      */
-    protected function isBackendApiEnabled(Store $store = null): bool
+    protected function isBackendApiEnabled(?Store $store = null): bool
     {
         return (bool)$this->config->getBackendApiToken($store);
     }
