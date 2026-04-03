@@ -34,12 +34,14 @@ define([
             });
         },
 
-        setOtherFieldVisibility: function (selectedAttributeValue) {
+        setOtherFieldVisibility: function (selectedAttributeValue, otherFieldValue = null) {
             registry.get(`${this.parentName}.${this.otherFieldName}`, function (otherField) {
                 const otherFieldVisible = selectedAttributeValue === this.otherValue
                 otherField.disabled(!otherFieldVisible);
                 if (selectedAttributeValue && !otherFieldVisible) {
                     otherField.value('');
+                } else if (otherFieldValue) {
+                    otherField.value(otherFieldValue);
                 }
             }.bind(this));
         },
@@ -52,10 +54,8 @@ define([
             if (optionExists) {
                 this.value(valueToRestore);
             } else {
-                const firstOption = this.options()[0];
-                if(firstOption) {
-                    this.value(firstOption.value);
-                }
+                this.value(this.otherValue);
+                this.setOtherFieldVisibility(this.otherValue, valueToRestore);
             }
         },
 

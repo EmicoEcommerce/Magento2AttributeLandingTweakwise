@@ -15,7 +15,7 @@ class LandingPagePlugin
      * @param array $result
      * @return array
      */
-    public function afterGetUnserializedFilterAttributes(LandingPage $subject, array $result): array
+    public function afterGetFrontendFilterAttributes(LandingPage $subject, array $result): array
     {
         foreach ($result as $key => $filterAttribute) {
             if ($filterAttribute['attribute'] !== AbstractFacetController::OTHER_ATTRIBUTE_VALUE) {
