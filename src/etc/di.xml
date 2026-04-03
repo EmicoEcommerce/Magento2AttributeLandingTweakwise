@@ -68,4 +68,9 @@
         <plugin name="Tweakwise_AttributeLandingTweakwise_Plugin_Block_Product_ListProduct"
                 type="Tweakwise\AttributeLandingTweakwise\Plugin\Block\Product\ListProduct"/>
     </type>
+
+    <type name="Emico\AttributeLanding\Model\LandingPage">
+        <plugin name="Tweakwise_AttributeLandingTweakwise_Plugin_Model_LandingPagePlugin"
+                type="Tweakwise\AttributeLandingTweakwise\Plugin\Model\LandingPagePlugin"/>
+    </type>
 </config>

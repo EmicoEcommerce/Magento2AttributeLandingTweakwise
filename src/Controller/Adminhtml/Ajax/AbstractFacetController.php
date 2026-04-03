@@ -13,7 +13,7 @@ use Tweakwise\AttributeLandingTweakwise\Model\Config;
 
 abstract class AbstractFacetController implements HttpPostActionInterface
 {
-    protected const OTHER_ATTRIBUTE_VALUE = 'tw_other';
+    public const OTHER_ATTRIBUTE_VALUE = 'tw_other';
 
     /**
      * @param Config $config
