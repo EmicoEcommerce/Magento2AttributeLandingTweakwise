@@ -113,7 +113,9 @@ class UrlPlugin
             return $this->buildLandingPageUrlWithExtraFilters(
                 $subject,
                 $bestMatch['page'],
-                $bestMatch['extraItems']
+                $bestMatch['extraItems'],
+                $proceed,
+                $filterItem
             );
         }
 
@@ -185,12 +187,16 @@ class UrlPlugin
      * @param Url $urlModel
      * @param LandingPageInterface $landingPage
      * @param Item[] $extraItems
+     * @param Closure $proceed
+     * @param Item $filterItem
      * @return string
      */
     private function buildLandingPageUrlWithExtraFilters(
         Url $urlModel,
         LandingPageInterface $landingPage,
-        array $extraItems
+        array $extraItems,
+        Closure $proceed,
+        Item $filterItem
     ): string {
         // @phpstan-ignore-next-line
         $storeBaseUrl = $this->storeManager->getStore()->getBaseUrl();
@@ -209,13 +215,49 @@ class UrlPlugin
             return rtrim($landingPageUrl, '/') . '/' . ltrim($extraPath, '/');
         }
 
-        // QueryParameterStrategy or other strategies: append as query parameters
-        $queryString = $this->buildExtraFilterQueryString($extraItems);
-        if (!empty($queryString)) {
-            return $landingPageUrl . '?' . $queryString;
+        // For QueryParameterStrategy (or other strategies): use $proceed to get the
+        // properly formatted URL through the normal URL pipeline (preserving encoding,
+        // hash parameters, etc.), then swap the base path to point to the landing page.
+        return $this->rebuildProceedUrlForLandingPage($proceed, $filterItem, $landingPageUrl);
+    }
+
+    /**
+     * Use the normal URL pipeline ($proceed) and swap the base path to the landing page URL.
+     * This preserves the encoding and query string format that the active URL strategy generates.
+     *
+     * @param Closure $proceed
+     * @param Item $filterItem
+     * @param string $landingPageUrl
+     * @return string
+     */
+    private function rebuildProceedUrlForLandingPage(
+        Closure $proceed,
+        Item $filterItem,
+        string $landingPageUrl
+    ): string {
+        $proceedUrl = $proceed($filterItem);
+
+        $parsedProceed = parse_url($proceedUrl);
+        $parsedLanding = parse_url($landingPageUrl);
+
+        if (!isset($parsedProceed['path']) || !isset($parsedLanding['path'])) {
+            return $proceedUrl;
         }
 
-        return $landingPageUrl;
+        // Replace the base path with the landing page path
+        $result = (isset($parsedProceed['scheme']) ? $parsedProceed['scheme'] . '://' : '')
+            . ($parsedProceed['host'] ?? '')
+            . $parsedLanding['path'];
+
+        if (isset($parsedProceed['query'])) {
+            $result .= '?' . $parsedProceed['query'];
+        }
+
+        if (isset($parsedProceed['fragment'])) {
+            $result .= '#' . $parsedProceed['fragment'];
+        }
+
+        return $result;
     }
 
     /**
@@ -259,38 +301,6 @@ class UrlPlugin
         return $path;
     }
 
-    /**
-     * Build a query string for the given Items (QueryParameterStrategy format: urlKey=value).
-     *
-     * @param Item[] $items
-     * @return string
-     */
-    private function buildExtraFilterQueryString(array $items): string
-    {
-        $params = [];
-        foreach ($items as $item) {
-            $facetSettings = $item->getFilter()->getFacet()->getFacetSettings();
-
-            if ($facetSettings->getSource() === SettingsType::SOURCE_CATEGORY) {
-                continue;
-            }
-
-            $urlKey = $facetSettings->getUrlKey();
-            $value = $item->getAttribute()->getTitle();
-
-            if (isset($params[$urlKey])) {
-                if (!is_array($params[$urlKey])) {
-                    $params[$urlKey] = [$params[$urlKey]];
-                }
-
-                $params[$urlKey][] = $value;
-            } else {
-                $params[$urlKey] = $value;
-            }
-        }
-
-        return http_build_query($params);
-    }
 
     /**
      * @return Layer
