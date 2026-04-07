@@ -13,6 +13,7 @@ use Emico\AttributeLanding\Model\Filter;
 use Emico\AttributeLanding\Model\FilterHider\FilterHiderInterface;
 use Emico\AttributeLanding\Model\LandingPageContext;
 use Emico\AttributeLanding\Model\UrlFinder;
+use Tweakwise\AttributeLandingTweakwise\Model\BestLandingPageFinder;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Filter\Item;
 use Tweakwise\Magento2Tweakwise\Model\Client\Type\FacetType\SettingsType;
 use Magento\Catalog\Model\Layer;
@@ -51,22 +52,30 @@ class FilterManager
     protected $urlFinder;
 
     /**
+     * @var BestLandingPageFinder
+     */
+    protected $bestLandingPageFinder;
+
+    /**
      * FilterManager constructor.
      * @param Resolver $layerResolver
      * @param FilterHiderInterface $filterHider
      * @param LandingPageContext $landingPageContext
      * @param UrlFinder $urlFinder
+     * @param BestLandingPageFinder $bestLandingPageFinder
      */
     public function __construct(
         Resolver $layerResolver,
         FilterHiderInterface $filterHider,
         LandingPageContext $landingPageContext,
-        UrlFinder $urlFinder
+        UrlFinder $urlFinder,
+        BestLandingPageFinder $bestLandingPageFinder
     ) {
         $this->layerResolver = $layerResolver;
         $this->filterHider = $filterHider;
         $this->landingPageContext = $landingPageContext;
         $this->urlFinder = $urlFinder;
+        $this->bestLandingPageFinder = $bestLandingPageFinder;
     }
 
     /**
@@ -208,5 +217,74 @@ class FilterManager
         }
 
         return false;
+    }
+
+    /**
+     * Find the best-matching landing page whose filters are a subset of the desired filters.
+     * Returns the landing page and the extra filter Items (not covered by the page), or null.
+     *
+     * @param Item $filterItem
+     * @return array{page: LandingPageInterface, extraItems: Item[]}|null
+     */
+    public function findBestLandingPageForFilterItem(Item $filterItem): ?array
+    {
+        $layer = $this->getLayer();
+        $allDesiredItems = array_merge($this->getAllActiveFilters(), [$filterItem]);
+
+        $desiredFilters = array_map(
+            static function (Item $item) {
+                return new Filter(
+                    $item->getFilter()->getUrlKey(),
+                    $item->getAttribute()->getTitle()
+                );
+            },
+            $allDesiredItems
+        );
+
+        $landingPageFilters = $this->getLandingsPageFilters();
+        $allFilters = array_unique(
+            array_merge($desiredFilters, $landingPageFilters),
+            SORT_REGULAR
+        );
+
+        // @phpstan-ignore-next-line
+        $categoryId = (int) $layer->getCurrentCategory()->getEntityId();
+        $bestMatch = $this->bestLandingPageFinder->findBestMatch($allFilters, $categoryId);
+
+        if ($bestMatch === null) {
+            return null;
+        }
+
+        $extraItems = $this->matchExtraFiltersToItems($bestMatch['extraFilters'], $allDesiredItems);
+
+        return ['page' => $bestMatch['page'], 'extraItems' => $extraItems];
+    }
+
+    /**
+     * Match FilterInterface objects back to their corresponding Tweakwise Item objects.
+     *
+     * @param FilterInterface[] $extraFilters
+     * @param Item[] $allItems
+     * @return Item[]
+     */
+    private function matchExtraFiltersToItems(array $extraFilters, array $allItems): array
+    {
+        $extraItems = [];
+        foreach ($allItems as $item) {
+            $itemFacet = strtolower($item->getFilter()->getUrlKey());
+            $itemValue = strtolower($item->getAttribute()->getTitle());
+
+            foreach ($extraFilters as $filter) {
+                if (
+                    strtolower($filter->getFacet()) === $itemFacet
+                    && strtolower($filter->getValue()) === $itemValue
+                ) {
+                    $extraItems[] = $item;
+                    break;
+                }
+            }
+        }
+
+        return $extraItems;
     }
 }
