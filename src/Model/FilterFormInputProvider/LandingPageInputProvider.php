@@ -79,7 +79,7 @@ class LandingPageInputProvider implements FilterFormInputProviderInterface
 
         $input = [
             '__tw_ajax_type' => self::TYPE,
-            '__tw_object_id' => (string)$page->getPageId(),
+            '__tw_object_id' => (int)$page->getPageId(),
             '__tw_original_url' => (string)$url,
         ];
 
