@@ -106,17 +106,19 @@ class UrlPlugin
             return $url;
         }
 
-        // Try best (subset) match – redirect to the landing page that covers
-        // the most of the desired filters and append the remaining filters to its URL
-        $bestMatch = $this->filterManager->findBestLandingPageForFilterItem($filterItem);
-        if ($bestMatch !== null) {
-            return $this->buildLandingPageUrlWithExtraFilters(
-                $subject,
-                $bestMatch['page'],
-                $bestMatch['extraItems'],
-                $proceed,
-                $filterItem
-            );
+        // Try best (subset) match – only when NOT already on a landing page.
+        // When the user is on a landing page we keep them there and let $proceed handle the URL.
+        if ($this->landingPageContext->getLandingPage() === null) {
+            $bestMatch = $this->filterManager->findBestLandingPageForFilterItem($filterItem);
+            if ($bestMatch !== null) {
+                return $this->buildLandingPageUrlWithExtraFilters(
+                    $subject,
+                    $bestMatch['page'],
+                    $bestMatch['extraItems'],
+                    $proceed,
+                    $filterItem
+                );
+            }
         }
 
         return $proceed($filterItem);

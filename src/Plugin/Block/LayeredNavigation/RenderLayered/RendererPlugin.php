@@ -55,7 +55,10 @@ class RendererPlugin
             }
         }
 
-        if (!$this->filterManager->findLandingPageUrlForFilterItem($filterItem) && !$returnToDefaultPage) {
+        if (!$this->filterManager->findLandingPageUrlForFilterItem($filterItem)
+            && !$returnToDefaultPage
+            && !($landingPage === null && $this->filterManager->findBestLandingPageForFilterItem($filterItem) !== null)
+        ) {
             return $result;
         }
 
