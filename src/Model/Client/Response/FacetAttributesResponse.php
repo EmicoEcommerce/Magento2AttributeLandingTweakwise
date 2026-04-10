@@ -54,7 +54,7 @@ class FacetAttributesResponse extends Response
                 $this->data['attributes'][] = $attribute->getValue('attribute');
             }
 
-            return $this;
+            break;
         }
 
         return $this;
