@@ -4,8 +4,8 @@
     "license": "OSL-3.0",
     "require": {
         "php": "^8.1",
-        "emico/m2-attributelanding": ">=5.1.0",
-        "tweakwise/magento2-tweakwise": ">=8.4.0"
+        "emico/m2-attributelanding": ">=6.0.5",
+        "tweakwise/magento2-tweakwise": ">=9.0.0"
     },
     "require-dev": {
         "emico/code-quality": "~10.6.0",
