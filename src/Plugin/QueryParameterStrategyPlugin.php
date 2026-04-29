@@ -117,16 +117,44 @@ class QueryParameterStrategyPlugin
 
         //hide landingspage filters in url
         foreach ($filters as $filter) {
-            if (!isset($result[$filter->getFacet()])) {
+            $facet = $filter->getFacet();
+            if (!isset($result[$facet])) {
                 continue;
             }
-            foreach ($result[$filter->getFacet()] as $key => $value) {
+
+            $values = $result[$facet];
+            // Single-select filters arrive as a scalar string from the request query;
+            // normalize to an array so the comparison/unset logic works in both shapes.
+            $isScalar = !is_array($values);
+            if ($isScalar) {
+                $values = [$values];
+            }
+
+            // Pre-dedupe: when hide_selected_filters is off the landing-page
+            // filter input and the regular checkbox can both submit the same
+            // value, producing duplicate entries in the request.
+            $values = array_values(array_unique($values));
+
+            foreach ($values as $key => $value) {
                 // phpcs:ignore SlevomatCodingStandard.Operators.DisallowEqualOperators.DisallowedNotEqualOperator
                 if ($value != $filter->getValue()) {
                     continue;
                 }
-                unset($result[$filter->getFacet()][$key]);
+                unset($values[$key]);
             }
+
+            // Reindex so the emitted URL uses contiguous keys (ae-color[0], ae-color[1], ...).
+            // Without this a removed first entry leaves a gap (e.g. ae-color[1]=Green),
+            // which causes the front-end query-string merge to treat ae-color[0] and
+            // ae-color[1] as distinct keys and produce duplicate values in the URL.
+            $values = array_values($values);
+
+            if (empty($values)) {
+                unset($result[$facet]);
+                continue;
+            }
+
+            $result[$facet] = $isScalar ? reset($values) : $values;
         }
 
         return $result;
