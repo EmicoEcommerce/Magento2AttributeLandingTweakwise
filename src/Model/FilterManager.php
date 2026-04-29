@@ -179,9 +179,11 @@ class FilterManager
 
                 $remaining = [];
                 foreach ($items as $idx => $item) {
-                    if (!isset($subset[$idx])) {
-                        $remaining[] = $item;
+                    if (isset($subset[$idx])) {
+                        continue;
                     }
+
+                    $remaining[] = $item;
                 }
 
                 return [$url, $remaining];
@@ -221,7 +223,8 @@ class FilterManager
         $rest = array_slice($values, 1);
 
         foreach ($this->generateCombinations($rest, $size - 1) as $combination) {
-            yield array_merge([$first], $combination);
+            array_unshift($combination, $first);
+            yield $combination;
         }
 
         yield from $this->generateCombinations($rest, $size);
@@ -253,49 +256,98 @@ class FilterManager
      */
     protected function appendFiltersAsPathSlugs(string $url, array $items): string
     {
-        $segments = [];
+        $segments = $this->buildPathSlugSegments($items);
+        if (empty($segments)) {
+            return $url;
+        }
+
+        return $this->rebuildUrlWithAppendedPath($url, '/' . implode('/', $segments) . '/');
+    }
+
+    /**
+     * Build path slug segments (e.g. ["color/red", "size/m"]) for the given filter items.
+     *
+     * @param Item[] $items
+     * @return string[]
+     */
+    protected function buildPathSlugSegments(array $items): array
+    {
         usort($items, [$this, 'sortItemsForUrl']);
+
+        $segments = [];
         foreach ($items as $item) {
             $facetSettings = $item->getFilter()->getFacet()->getFacetSettings();
             if ($facetSettings->getSource() === SettingsType::SOURCE_CATEGORY) {
                 continue;
             }
 
-            $urlKey = $item->getFilter()->getUrlKey();
-            if ($facetSettings->getSelectionType() === SettingsType::SELECTION_TYPE_SLIDER) {
-                $slug = $item->getAttribute()->getTitle();
-            } else {
-                $slug = $this->filterSlugManager->getSlugForFilterItem($item);
-            }
-
-            $segments[] = $urlKey . '/' . $slug;
+            $segments[] = $item->getFilter()->getUrlKey() . '/' . $this->getSlugForItem($item);
         }
 
-        if (empty($segments)) {
-            return $url;
+        return $segments;
+    }
+
+    /**
+     * Return the URL slug to use for a single filter item.
+     *
+     * @param Item $item
+     * @return string
+     */
+    protected function getSlugForItem(Item $item): string
+    {
+        $facetSettings = $item->getFilter()->getFacet()->getFacetSettings();
+        if ($facetSettings->getSelectionType() === SettingsType::SELECTION_TYPE_SLIDER) {
+            return (string)$item->getAttribute()->getTitle();
         }
 
-        $parts = parse_url($url);
-        $path = isset($parts['path']) ? rtrim($parts['path'], '/') : '';
-        $newPath = $path . '/' . implode('/', $segments) . '/';
+        return (string)$this->filterSlugManager->getSlugForFilterItem($item);
+    }
 
-        $rebuilt = '';
-        if (isset($parts['scheme'], $parts['host'])) {
-            $rebuilt = $parts['scheme'] . '://' . $parts['host'];
-            if (isset($parts['port'])) {
-                $rebuilt .= ':' . $parts['port'];
-            }
-        }
-        $rebuilt .= $newPath;
+    /**
+     * Append a path fragment to the given URL while preserving scheme, host, port,
+     * query and fragment components.
+     *
+     * @param string $url
+     * @param string $appendPath
+     * @return string
+     */
+    protected function rebuildUrlWithAppendedPath(string $url, string $appendPath): string
+    {
+        $parts = parse_url($url) ?: [];
+        $basePath = isset($parts['path']) ? rtrim($parts['path'], '/') : '';
+
+        $rebuilt = $this->buildUrlAuthority($parts) . $basePath . $appendPath;
+
         if (!empty($parts['query'])) {
             $rebuilt .= '?' . $parts['query'];
         }
+
         if (!empty($parts['fragment'])) {
             $rebuilt .= '#' . $parts['fragment'];
         }
 
         // Collapse accidental double slashes (but not in scheme).
         return preg_replace('/(?<!:)\/\//', '/', $rebuilt);
+    }
+
+    /**
+     * Build the scheme://host[:port] portion of a URL from parsed parts.
+     *
+     * @param array $parts
+     * @return string
+     */
+    protected function buildUrlAuthority(array $parts): string
+    {
+        if (!isset($parts['scheme'], $parts['host'])) {
+            return '';
+        }
+
+        $authority = $parts['scheme'] . '://' . $parts['host'];
+        if (isset($parts['port'])) {
+            $authority .= ':' . $parts['port'];
+        }
+
+        return $authority;
     }
 
     /**
@@ -314,7 +366,10 @@ class FilterManager
                 continue;
             }
 
-            $urlKey = $settings->getUrlKey() ?: $item->getFilter()->getUrlKey();
+            $urlKey = $settings->getUrlKey() ?? $item->getFilter()->getUrlKey();
+            if ($urlKey === '') {
+                $urlKey = $item->getFilter()->getUrlKey();
+            }
             $value = $item->getAttribute()->getTitle();
 
             if ($settings->getIsMultipleSelect()) {
