@@ -313,7 +313,10 @@ class FilterManager
      */
     protected function rebuildUrlWithAppendedPath(string $url, string $appendPath): string
     {
-        $parts = parse_url($url) ?: [];
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            $parts = [];
+        }
         $basePath = isset($parts['path']) ? rtrim($parts['path'], '/') : '';
 
         $rebuilt = $this->buildUrlAuthority($parts) . $basePath . $appendPath;
