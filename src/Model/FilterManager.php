@@ -128,7 +128,13 @@ class FilterManager
             return null;
         }
 
-        [$matchedUrl, $remainingItems] = $partialMatch;
+        [$matchedUrl, $remainingItems, $matchedItems] = $partialMatch;
+
+        // Strip the LP's own configured filters from the matched URL's query string.
+        // The landing page context applies those filters implicitly; having them
+        // as explicit query parameters was not the case before this feature.
+        $matchedUrl = $this->stripItemsFromUrlQuery($matchedUrl, $matchedItems);
+
         if (empty($remainingItems)) {
             return $matchedUrl;
         }
@@ -138,12 +144,12 @@ class FilterManager
 
     /**
      * Look for the largest subset of $items for which a landing page URL is registered.
-     * Returns a tuple of [matched URL, remaining items not covered by the landing page]
+     * Returns a tuple of [matched URL, remaining items not covered by the landing page, matched items]
      * or null when no subset matches.
      *
      * @param Item[] $items
      * @param int $categoryId
-     * @return array{0:string,1:Item[]}|null
+     * @return array{0:string,1:Item[],2:Item[]}|null
      */
     protected function findBestPartialLandingPageMatch(array $items, int $categoryId): ?array
     {
@@ -186,7 +192,7 @@ class FilterManager
                     $remaining[] = $item;
                 }
 
-                return [$url, $remaining];
+                return [$url, $remaining, array_values($subset)];
             }
         }
 
@@ -388,6 +394,44 @@ class FilterManager
 
         $separator = strpos($url, '?') !== false ? '&' : '?';
         return $url . $separator . http_build_query($queryParams);
+    }
+
+    /**
+     * Remove the query parameters corresponding to the given filter items from a URL.
+     * This prevents the landing-page's own configured filters from appearing as explicit
+     * query parameters in the redirect URL (the LP context applies them implicitly).
+     *
+     * @param string $url
+     * @param Item[] $items
+     * @return string
+     */
+    protected function stripItemsFromUrlQuery(string $url, array $items): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['query'])) {
+            return $url;
+        }
+
+        $query = [];
+        parse_str($parts['query'], $query);
+
+        foreach ($items as $item) {
+            $urlKey = $item->getFilter()->getUrlKey();
+            unset($query[$urlKey]);
+        }
+
+        $parts['query'] = http_build_query($query);
+
+        $rebuilt = $this->buildUrlAuthority($parts);
+        $rebuilt .= $parts['path'] ?? '';
+        if (!empty($parts['query'])) {
+            $rebuilt .= '?' . $parts['query'];
+        }
+        if (!empty($parts['fragment'])) {
+            $rebuilt .= '#' . $parts['fragment'];
+        }
+
+        return $rebuilt;
     }
 
     /**
