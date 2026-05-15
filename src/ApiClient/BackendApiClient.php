@@ -150,13 +150,14 @@ class BackendApiClient
         try {
             $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
             $contents = $response->getBody()->getContents();
-            $result = $this->jsonSerializer->unserialize($contents);
+            $result = is_array($this->jsonSerializer->unserialize($contents)) ?
+                $this->jsonSerializer->unserialize($contents) :
+                [];
 
-            if (!is_array($result)) {
-                return [];
+            if ($result) {
+                $allAttributes = $this->getAttributes($store);
             }
 
-            $allAttributes = $this->getAttributes($store);
             foreach ($result as $filterTemplateAttribute) {
                 if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
                     continue;
