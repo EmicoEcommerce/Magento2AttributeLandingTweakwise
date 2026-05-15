@@ -113,10 +113,59 @@ class BackendApiClient
             }
 
             foreach ($result['Records'] as $record) {
-                $attributes[] = [
+                $attributes[$record['Id']] = [
                     'value' => $record['UrlName'],
                     'label' => $record['Name'],
                     'id' => $record['Id']
+                ];
+            }
+
+            $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
+
+            return $attributes;
+        } catch (GuzzleException | Exception $e) {
+            $this->logger->critical(
+                'Retrieving attributes from Tweakiwse Backend API failed',
+                [
+                    'exception' => $e->getMessage()
+                ]
+            );
+            return [];
+        }
+    }
+
+    /**
+     * @param Store $store
+     * @param int|null $filterTemplate
+     * @return array
+     */
+    public function getAttributesFromFilterTemplate(Store $store, ?int $filterTemplate): array
+    {
+        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId(), filterTemplate: $filterTemplate);
+        if ($this->cacheExists($cacheKey)) {
+            return $this->getFromCache($cacheKey);
+        }
+
+        $attributes = [];
+        try {
+            $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
+            $contents = $response->getBody()->getContents();
+            $result = $this->jsonSerializer->unserialize($contents);
+
+            if (!is_array($result)) {
+                return [];
+            }
+
+            $allAttributes = $this->getAttributes($store);
+            foreach ($result as $filterTemplateAttribute) {
+                if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
+                    continue;
+                }
+
+                $attributes[] = [
+                    'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
+                    'label' => $filterTemplateAttribute['Name'],
+                    'id' => $filterTemplateAttribute['AttributeId']
                 ];
             }
 
@@ -141,10 +190,13 @@ class BackendApiClient
      */
     public function getAttributeIdByCode(string $attributeCode, Store $store): ?int
     {
-        $attributes = $this->getAttributes($store);
-        $index = array_search($attributeCode, array_column($attributes, 'value'), true);
+        foreach ($this->getAttributes($store) as $attributeId => $attribute) {
+            if ($attribute['value'] === $attributeCode) {
+                return $attributeId;
+            }
+        }
 
-        return $index !== false ? (int)$attributes[$index]['id'] : null;
+        return null;
     }
 
     /**
@@ -194,14 +246,28 @@ class BackendApiClient
      * @param string $type
      * @param int $storeId
      * @param int|null $attributeId
+     * @param int|null $filterTemplate
      * @return string
      */
-    private function getCacheKey(string $type, int $storeId, ?int $attributeId = null): string
+    private function getCacheKey(string $type, int $storeId, ?int $attributeId = null, ?int $filterTemplate = null): string
     {
         if ($attributeId) {
-            return sprintf('tweakwise_backend_api_result_%s_%s_%s', $type, $attributeId, $storeId);
+            return sprintf(
+                'tweakwise_backend_api_result_type_%s_attribute_%s_store_%s',
+                $type,
+                $attributeId,
+                $storeId
+            );
         }
-        return sprintf('tweakwise_backend_api_result_%s_%s', $type, $storeId);
+        if ($filterTemplate) {
+            return sprintf(
+                'tweakwise_backend_api_result_type_%s_ft_%s_store_%s',
+                $type,
+                $filterTemplate,
+                $storeId
+            );
+        }
+        return sprintf('tweakwise_backend_api_result_type_%s_store_%s', $type, $storeId);
     }
 
     /**
