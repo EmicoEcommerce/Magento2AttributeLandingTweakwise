@@ -125,7 +125,7 @@ class BackendApiClient
             return $attributes;
         } catch (GuzzleException | Exception $e) {
             $this->logger->critical(
-                'Retrieving attributes from Tweakiwse Backend API failed',
+                'Retrieving attributes from Tweakwise Backend API failed',
                 [
                     'exception' => $e->getMessage()
                 ]
@@ -175,7 +175,7 @@ class BackendApiClient
             return $attributes;
         } catch (GuzzleException | Exception $e) {
             $this->logger->critical(
-                'Retrieving attributes from Tweakiwse Backend API failed',
+                'Retrieving filter template attributes from Tweakwise Backend API failed',
                 [
                     'exception' => $e->getMessage()
                 ]
@@ -234,7 +234,7 @@ class BackendApiClient
             return $attributeValues;
         } catch (GuzzleException | Exception $e) {
             $this->logger->critical(
-                'Retrieving attribute valus from Tweakiwse Backend API failed',
+                'Retrieving attribute values from Tweakwise Backend API failed',
                 [
                     'exception' => $e->getMessage()
                 ]
