@@ -15,6 +15,7 @@ use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\Strategy\FilterSlugManag
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\Strategy\PathSlugStrategy;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\UrlFactory;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
+use Magento\Store\Model\StoreManagerInterface;
 
 class PathSlugStrategyPlugin
 {
@@ -43,12 +44,14 @@ class PathSlugStrategyPlugin
      * @param FilterManager $filterManager
      * @param UrlFactory $urlFactory
      * @param FilterSlugManager $filterSlugManager
+     * @param StoreManagerInterface $storeManager
      */
     public function __construct(
         LandingPageContext $landingPageContext,
         FilterManager $filterManager,
         UrlFactory $urlFactory,
-        FilterSlugManager $filterSlugManager
+        FilterSlugManager $filterSlugManager,
+        private readonly StoreManagerInterface $storeManager
     ) {
         $this->landingPageContext = $landingPageContext;
         $this->filterManager = $filterManager;
@@ -177,13 +180,17 @@ class PathSlugStrategyPlugin
         }
 
         $lookupTable = $this->filterSlugManager->getLookupTable();
+        $storeId = (int) $this->storeManager->getStore()->getId();
         $filters = [];
         foreach ($landingsPageFilters as $filter) {
             $filters[] = $filter->getFacet();
-            if (!empty($lookupTable[$filter->getValue()])) {
-                $filters[] = $lookupTable[$filter->getValue()];
+            $key = strtolower($filter->getValue());
+            if (!empty($lookupTable[$storeId][$key])) {
+                $filters[] = $lookupTable[$storeId][$key];
+            } elseif (!empty($lookupTable[0][$key])) {
+                $filters[] = $lookupTable[0][$key];
             } else {
-                $filters[] = strtolower($filter->getValue());
+                $filters[] = $key;
             }
         }
 
