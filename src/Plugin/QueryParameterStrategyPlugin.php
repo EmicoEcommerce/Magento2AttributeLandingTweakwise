@@ -150,7 +150,11 @@ class QueryParameterStrategyPlugin
             $values = array_values($values);
 
             if (empty($values)) {
-                unset($result[$facet]);
+                // Keep the key with an empty array rather than unsetting it entirely.
+                // getCurrentQueryUrl merges raw request params back into the query using
+                // array_key_exists; if the key is absent it re-adds the LP filter value
+                // from the request. An empty array acts as a tombstone that prevents this.
+                $result[$facet] = [];
                 continue;
             }
 
