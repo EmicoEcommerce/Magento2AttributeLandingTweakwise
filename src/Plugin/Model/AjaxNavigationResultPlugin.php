@@ -126,4 +126,3 @@ class AjaxNavigationResultPlugin
             . '?' . http_build_query($query);
     }
 }
-
