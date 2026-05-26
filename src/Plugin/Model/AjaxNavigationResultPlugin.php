@@ -87,8 +87,9 @@ class AjaxNavigationResultPlugin
         $page = (int) $this->request->getParam('p');
 
         // Admin-configured canonical override: never append ?p= to explicit overrides
-        if ($landingPage->getCanonicalUrl()) {
-            return $landingPage->getCanonicalUrl();
+        $canonicalUrl = $landingPage->getCanonicalUrl();
+        if ($canonicalUrl) {
+            return $canonicalUrl;
         }
 
         if ($this->alpConfig->isCanonicalSelfReferencingEnabled()) {
