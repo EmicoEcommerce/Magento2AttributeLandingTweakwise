@@ -78,7 +78,8 @@ class QueryParameterStrategyPlugin
             return $result;
         }
 
-        $urlParts = parse_url($result) ? parse_url($result) : null;
+        $parsed = parse_url($result);
+        $urlParts = $parsed !== false ? $parsed : null;
         if (!$urlParts) {
             return $result;
         }
