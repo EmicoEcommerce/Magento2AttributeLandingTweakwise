@@ -25,10 +25,7 @@
     "repositories": {
         "emico": {
             "type": "composer",
-            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/",
-            "exclude": [
-                "emico/m2-attributelanding"
-            ]
+            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/"
         },
         "magento": {
             "type": "composer",
