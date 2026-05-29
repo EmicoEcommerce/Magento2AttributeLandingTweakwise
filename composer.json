@@ -25,7 +25,12 @@
     "repositories": {
         "emico": {
             "type": "composer",
-            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/"
+            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/",
+            "only": [
+                "emico/code-quality",
+                "emico/codeception-m2"
+
+            ]
         },
         "magento": {
             "type": "composer",
@@ -40,9 +45,6 @@
             "phpstan/extension-installer": true,
             "phpro/grumphp": true,
             "emico/code-quality": true
-        },
-        "preferred-install": {
-            "emico/code-quality": "dist"
         }
     }
 }
