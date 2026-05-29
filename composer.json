@@ -23,13 +23,16 @@
         }
     },
     "repositories": {
+        "emico": {
+            "type": "composer",
+            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/",
+            "only": [
+                "emico/code-quality"
+            ]
+        },
         "magento": {
             "type": "composer",
             "url": "https://repo.magento.com/"
-        },
-        "emico": {
-            "type": "composer",
-            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/"
         }
     },
     "config": {
