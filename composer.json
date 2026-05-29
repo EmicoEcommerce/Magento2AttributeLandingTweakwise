@@ -8,8 +8,7 @@
         "tweakwise/magento2-tweakwise": ">=9.0.0"
     },
     "require-dev": {
-        "emico/code-quality": "~10.6.0",
-        "symfony/finder": "^6.4.0"
+        "emico/code-quality": "^10.8"
     },
     "type": "magento2-module",
     "replace": {
@@ -24,13 +23,13 @@
         }
     },
     "repositories": {
+        "emico": {
+            "type": "composer",
+            "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/"
+        },
         "magento": {
             "type": "composer",
             "url": "https://repo.magento.com/"
-        },
-        "emico/code-quality": {
-            "type": "vcs",
-            "url": "https://git.emico.io/composer-packages/generic/codequality.git"
         }
     },
     "config": {
