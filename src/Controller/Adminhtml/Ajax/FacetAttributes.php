@@ -18,7 +18,7 @@ use Tweakwise\AttributeLandingTweakwise\Model\Client\Request\FacetAttributeReque
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
 use Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory;
-use Tweakwise\Magento2Tweakwise\Model\Client\Response\FacetAttributesResponse;
+use Tweakwise\AttributeLandingTweakwise\Model\Client\Response\FacetAttributesResponse;
 use Tweakwise\Magento2TweakwiseExport\Model\Helper;
 
 class FacetAttributes extends AbstractFacetController
