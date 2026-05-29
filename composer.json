@@ -26,8 +26,8 @@
         "emico": {
             "type": "composer",
             "url": "https://git.emico.io/api/v4/group/239/-/packages/composer/",
-            "only": [
-                "emico/code-quality"
+            "exclude": [
+                "emico/m2-attributelanding"
             ]
         },
         "magento": {
