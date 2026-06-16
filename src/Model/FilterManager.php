@@ -106,7 +106,7 @@ class FilterManager
         // 1) Try exact match (existing behavior, including current landing page filters).
         $attributeLandingFilters = $this->getLandingsPageFilters();
         $exactFilters = array_unique(
-            array_merge($candidateFilters, $attributeLandingFilters),
+            array_merge($candidateFilters, $this->normalizeLandingPageFilters($attributeLandingFilters)),
             SORT_REGULAR
         );
 
@@ -117,7 +117,7 @@ class FilterManager
 
         //    Skip this when already on a landing page to avoid cross-linking from one
         //    landing page to another via a partial match.
-        if ($this->landingPageContext->getLandingPage() !== null) {
+        if ($this->getLandingPage() !== null) {
             return null;
         }
 
@@ -368,6 +368,7 @@ class FilterManager
      */
     protected function appendFiltersAsQueryParams(string $url, array $items): string
     {
+        /** @var array<string, string|list<string>> $queryParams */
         $queryParams = [];
         foreach ($items as $item) {
             $settings = $item->getFilter()->getFacet()->getFacetSettings();
@@ -375,14 +376,20 @@ class FilterManager
                 continue;
             }
 
-            $urlKey = $settings->getUrlKey() ?? $item->getFilter()->getUrlKey();
+            $urlKey = $settings->getUrlKey();
             if ($urlKey === '') {
                 $urlKey = $item->getFilter()->getUrlKey();
             }
             $value = $item->getAttribute()->getTitle();
 
             if ($settings->getIsMultipleSelect()) {
-                $queryParams[$urlKey][] = $value;
+                $currentValue = $queryParams[$urlKey] ?? [];
+                if (!is_array($currentValue)) {
+                    $currentValue = [$currentValue];
+                }
+
+                $currentValue[] = $value;
+                $queryParams[$urlKey] = $currentValue;
             } else {
                 $queryParams[$urlKey] = $value;
             }
@@ -457,7 +464,7 @@ class FilterManager
      */
     public function getLandingsPageFilters()
     {
-        $landingsPage = $this->landingPageContext->getLandingPage();
+        $landingsPage = $this->getLandingPage();
         // @phpstan-ignore-next-line
         if (!$landingsPage) {
             return [];
@@ -467,13 +474,45 @@ class FilterManager
     }
 
     /**
+     * @return LandingPageInterface|null
+     */
+    protected function getLandingPage(): ?LandingPageInterface
+    {
+        $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
+        if (!$landingPage) {
+            return null;
+        }
+
+        return $landingPage;
+    }
+
+    /**
+     * @param FilterInterface[] $filters
+     * @return Filter[]
+     */
+    protected function normalizeLandingPageFilters(array $filters): array
+    {
+        return array_map(
+            static function (FilterInterface $filter): Filter {
+                if ($filter instanceof Filter) {
+                    return $filter;
+                }
+
+                return new Filter($filter->getFacet(), $filter->getValue());
+            },
+            $filters
+        );
+    }
+
+    /**
      * @return Item[]
      */
     public function getActiveFiltersExcludingLandingPageFilters(): array
     {
         if ($this->activeFiltersExcludingLandingPageFilters === null) {
             $filters = $this->getAllActiveFilters();
-            $landingPage = $this->landingPageContext->getLandingPage();
+            $landingPage = $this->getLandingPage();
             // @phpstan-ignore-next-line
             if ($landingPage === null) {
                 return $filters;

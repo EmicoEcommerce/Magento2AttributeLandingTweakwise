@@ -161,5 +161,4 @@ class FilterManagerTest extends Unit
 
         return $item;
     }
-
 }
