@@ -465,7 +465,6 @@ class FilterManager
     public function getLandingsPageFilters()
     {
         $landingsPage = $this->getLandingPage();
-        // @phpstan-ignore-next-line
         if (!$landingsPage) {
             return [];
         }
@@ -513,7 +512,6 @@ class FilterManager
         if ($this->activeFiltersExcludingLandingPageFilters === null) {
             $filters = $this->getAllActiveFilters();
             $landingPage = $this->getLandingPage();
-            // @phpstan-ignore-next-line
             if ($landingPage === null) {
                 return $filters;
             }
