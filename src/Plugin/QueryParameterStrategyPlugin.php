@@ -95,7 +95,7 @@ class QueryParameterStrategyPlugin
         }
 
         return $this->magentoUrl->getDirectUrl(
-            ltrim($urlParts['path'], '/'),
+            ltrim($urlParts['path'] ?? '', '/'),
             ['_query' => $query]
         );
     }
