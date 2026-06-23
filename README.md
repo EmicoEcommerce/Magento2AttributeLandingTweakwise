@@ -25,8 +25,13 @@ php bin/magento setup:upgrade
 
 ## A note on navigation.
 It is possible to have your users navigate to a landingpage when the user happens to select a set of filters which matches a landingpage.
-In order to do this one has to enable "tweakwise_attributelanding/general/allow_crosslink".
+In order to do this one has to enable "Allow crosslink" under `Stores -> Configuration -> Emico Extensions -> Attribute landing pages -> General`.
 It is also important to note that in order to achieve this the filter values configured in the landingpage match the tweakwise filter values (as known in the navigator) exactly, this is case sensitive!
+
+## Configuration
+Configuration can be found under `Stores -> Configuration -> Catalog -> Tweakwise -> Attribute Landing Pages`.
+
+- **Backend API Access Token** (optional): Enter the backend API token if you want to use the Tweakwise backend API to retrieve attributes when creating attribute landing pages. Leave empty if you manage attribute landing page filters manually.
 
 ## Contributors
 If you want to create a pull request as a contributor, use the guidelines of semantic-release. semantic-release automates the whole package release workflow including: determining the next version number, generating the release notes, and publishing the package.
