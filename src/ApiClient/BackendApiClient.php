@@ -136,10 +136,10 @@ class BackendApiClient
 
     /**
      * @param Store $store
-     * @param int|null $filterTemplate
+     * @param int $filterTemplate
      * @return array
      */
-    public function getAttributesFromFilterTemplate(Store $store, ?int $filterTemplate): array
+    public function getAttributesFromFilterTemplate(Store $store, int $filterTemplate): array
     {
         $cacheKey = $this->getCacheKey('attributes', (int)$store->getId(), filterTemplate: $filterTemplate);
         if ($this->cacheExists($cacheKey)) {
@@ -154,9 +154,7 @@ class BackendApiClient
                 $this->jsonSerializer->unserialize($contents) :
                 [];
 
-            if ($result) {
-                $allAttributes = $this->getAttributes($store);
-            }
+            $allAttributes = $result ? $this->getAttributes($store) : [];
 
             foreach ($result as $filterTemplateAttribute) {
                 if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {

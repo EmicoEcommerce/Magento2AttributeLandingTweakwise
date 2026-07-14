@@ -112,9 +112,8 @@ class Facets extends AbstractFacetController
      */
     private function executeBackendApiRequest(Store $store): array
     {
-        $filterTemplate = $this->request->getParam('filter_template') ?
-            (int)$this->request->getParam('filter_template') :
-            null;
+        $filterTemplateParam = $this->request->getParam('filter_template');
+        $filterTemplate = $filterTemplateParam !== null && $filterTemplateParam !== '' ? (int)$filterTemplateParam : null;
 
         if ($filterTemplate) {
             return $this->backendApiClient->getAttributesFromFilterTemplate($store, $filterTemplate);
