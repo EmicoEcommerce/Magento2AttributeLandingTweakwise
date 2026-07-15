@@ -397,28 +397,7 @@ class FilterManager
         /** @var array<string, string|list<string>> $queryParams */
         $queryParams = [];
         foreach ($items as $item) {
-            $settings = $item->getFilter()->getFacet()->getFacetSettings();
-            if ($settings->getSource() === SettingsType::SOURCE_CATEGORY) {
-                continue;
-            }
-
-            $urlKey = $settings->getUrlKey();
-            if ($urlKey === '') {
-                $urlKey = $item->getFilter()->getUrlKey();
-            }
-            $value = $item->getAttribute()->getTitle();
-
-            if ($settings->getIsMultipleSelect()) {
-                $currentValue = $queryParams[$urlKey] ?? [];
-                if (!is_array($currentValue)) {
-                    $currentValue = [$currentValue];
-                }
-
-                $currentValue[] = $value;
-                $queryParams[$urlKey] = $currentValue;
-            } else {
-                $queryParams[$urlKey] = $value;
-            }
+            $queryParams = $this->addFilterToQueryParams($queryParams, $item);
         }
 
         if (empty($queryParams)) {
@@ -445,6 +424,41 @@ class FilterManager
         }
 
         return $rebuilt;
+    }
+
+    /**
+     * Add a single filter item to the query params array, handling multi-select merging.
+     *
+     * @param array<string, string|list<string>> $queryParams
+     * @param Item $item
+     * @return array<string, string|list<string>>
+     */
+    protected function addFilterToQueryParams(array $queryParams, Item $item): array
+    {
+        $settings = $item->getFilter()->getFacet()->getFacetSettings();
+        if ($settings->getSource() === SettingsType::SOURCE_CATEGORY) {
+            return $queryParams;
+        }
+
+        $urlKey = $settings->getUrlKey();
+        if ($urlKey === '') {
+            $urlKey = $item->getFilter()->getUrlKey();
+        }
+        $value = $item->getAttribute()->getTitle();
+
+        if ($settings->getIsMultipleSelect()) {
+            $currentValue = $queryParams[$urlKey] ?? [];
+            if (!is_array($currentValue)) {
+                $currentValue = [$currentValue];
+            }
+
+            $currentValue[] = $value;
+            $queryParams[$urlKey] = $currentValue;
+        } else {
+            $queryParams[$urlKey] = $value;
+        }
+
+        return $queryParams;
     }
 
     /**
