@@ -54,6 +54,14 @@ class FilterManager
     protected $urlFinder;
 
     /**
+     * Request-scoped cache of findUrlByFilters() results, keyed by category id and filter set.
+     * Avoids up to 2^MAX_PARTIAL_MATCH_FILTERS repeated lookups per filter selection.
+     *
+     * @var array<string, string|null>
+     */
+    private array $urlCache = [];
+
+    /**
      * Maximum amount of active filters considered for partial landing-page subset lookup.
      * Limits 2^n combinations to a sane bound.
      */
@@ -110,7 +118,7 @@ class FilterManager
             SORT_REGULAR
         );
 
-        $url = $this->urlFinder->findUrlByFilters($exactFilters, $categoryId);
+        $url = $this->findUrlByFiltersCached($exactFilters, $categoryId);
         if ($url) {
             return $url;
         }
@@ -128,18 +136,36 @@ class FilterManager
             return null;
         }
 
-        [$matchedUrl, $remainingItems, $matchedItems] = $partialMatch;
-
-        // Strip the LP's own configured filters from the matched URL's query string.
-        // The landing page context applies those filters implicitly; having them
-        // as explicit query parameters was not the case before this feature.
-        $matchedUrl = $this->stripItemsFromUrlQuery($matchedUrl, $matchedItems);
+        [$matchedUrl, $remainingItems] = $partialMatch;
 
         if (empty($remainingItems)) {
             return $matchedUrl;
         }
 
         return $this->appendFiltersToUrl($matchedUrl, $remainingItems);
+    }
+
+    /**
+     * Cached wrapper around UrlFinder::findUrlByFilters() to avoid repeated database
+     * lookups for the same filter combination during a single request (subset matching
+     * can trigger up to 2^MAX_PARTIAL_MATCH_FILTERS lookups).
+     *
+     * @param Filter[] $filters
+     * @param int $categoryId
+     * @return string|null
+     */
+    private function findUrlByFiltersCached(array $filters, int $categoryId): ?string
+    {
+        $cacheKey = $categoryId . ':' . implode('|', array_map(
+            static fn (Filter $filter) => strtolower($filter->getFacet() . '=' . $filter->getValue()),
+            $filters
+        ));
+
+        if (!array_key_exists($cacheKey, $this->urlCache)) {
+            $this->urlCache[$cacheKey] = $this->urlFinder->findUrlByFilters($filters, $categoryId);
+        }
+
+        return $this->urlCache[$cacheKey];
     }
 
     /**
@@ -178,7 +204,7 @@ class FilterManager
                     $subset
                 );
 
-                $url = $this->urlFinder->findUrlByFilters($filters, $categoryId);
+                $url = $this->findUrlByFiltersCached($filters, $categoryId);
                 if (!$url) {
                     continue;
                 }
@@ -399,41 +425,21 @@ class FilterManager
             return $url;
         }
 
-        $separator = strpos($url, '?') !== false ? '&' : '?';
-        return $url . $separator . http_build_query($queryParams);
-    }
-
-    /**
-     * Remove the query parameters corresponding to the given filter items from a URL.
-     * This prevents the landing-page's own configured filters from appearing as explicit
-     * query parameters in the redirect URL (the LP context applies them implicitly).
-     *
-     * @param string $url
-     * @param Item[] $items
-     * @return string
-     */
-    protected function stripItemsFromUrlQuery(string $url, array $items): string
-    {
         $parts = parse_url($url);
-        if (!is_array($parts) || empty($parts['query'])) {
-            return $url;
+        if (!is_array($parts)) {
+            $parts = [];
         }
 
-        $query = [];
-        parse_str($parts['query'], $query);
-
-        foreach ($items as $item) {
-            $urlKey = $item->getFilter()->getUrlKey();
-            unset($query[$urlKey]);
-        }
-
-        $parts['query'] = http_build_query($query);
-
-        $rebuilt = $this->buildUrlAuthority($parts);
-        $rebuilt .= $parts['path'] ?? '';
+        $existingQuery = [];
         if (!empty($parts['query'])) {
-            $rebuilt .= '?' . $parts['query'];
+            parse_str($parts['query'], $existingQuery);
         }
+
+        $merged = array_merge_recursive($existingQuery, $queryParams);
+
+        $rebuilt = $this->buildUrlAuthority($parts) . ($parts['path'] ?? '');
+        $rebuilt .= '?' . http_build_query($merged, '', '&', PHP_QUERY_RFC3986);
+
         if (!empty($parts['fragment'])) {
             $rebuilt .= '#' . $parts['fragment'];
         }
