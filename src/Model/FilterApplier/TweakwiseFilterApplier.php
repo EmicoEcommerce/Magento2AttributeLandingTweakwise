@@ -8,6 +8,7 @@
 namespace Tweakwise\AttributeLandingTweakwise\Model\FilterApplier;
 
 use Emico\AttributeLanding\Api\Data\LandingPageInterface;
+use Emico\AttributeLanding\Model\Filter;
 use Emico\AttributeLanding\Model\FilterApplier\FilterApplierInterface;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\NavigationContext;
 
@@ -40,7 +41,9 @@ class TweakwiseFilterApplier implements FilterApplierInterface
         $filters = $page->getFilters();
 
         foreach ($filters as $filter) {
-            foreach ($filter->getValues() as $value) {
+            $values = $filter instanceof Filter ? $filter->getValues() : [$filter->getValue()];
+
+            foreach ($values as $value) {
                 if ($value === '') {
                     continue;
                 }
