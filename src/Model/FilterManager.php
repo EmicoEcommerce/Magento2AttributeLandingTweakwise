@@ -103,10 +103,9 @@ class FilterManager
 
         $candidateFilters = array_map(
             static function (Item $item) {
-                // @phpstan-ignore-next-line
                 return new Filter(
                     $item->getFilter()->getUrlKey(),
-                    [(string)$item->getAttribute()->getTitle()]
+                    [(string)$item->getAttribute()->getTitle()] // @phpstan-ignore argument.type
                 );
             },
             $candidateItems
@@ -197,10 +196,9 @@ class FilterManager
 
                 $filters = array_map(
                     static function (Item $item) {
-                        // @phpstan-ignore-next-line
                         return new Filter(
                             $item->getFilter()->getUrlKey(),
-                            [(string)$item->getAttribute()->getTitle()]
+                            [(string)$item->getAttribute()->getTitle()] // @phpstan-ignore argument.type
                         );
                     },
                     $subset
