@@ -105,7 +105,7 @@ class FilterManager
             static function (Item $item) {
                 return new Filter(
                     $item->getFilter()->getUrlKey(),
-                    $item->getAttribute()->getTitle()
+                    [(string)$item->getAttribute()->getTitle()]
                 );
             },
             $candidateItems
@@ -198,7 +198,7 @@ class FilterManager
                     static function (Item $item) {
                         return new Filter(
                             $item->getFilter()->getUrlKey(),
-                            $item->getAttribute()->getTitle()
+                            [(string)$item->getAttribute()->getTitle()]
                         );
                     },
                     $subset
@@ -518,7 +518,7 @@ class FilterManager
                     return $filter;
                 }
 
-                return new Filter($filter->getFacet(), $filter->getValue());
+                return new Filter($filter->getFacet(), $filter->getValues());
             },
             $filters
         );
