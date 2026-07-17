@@ -40,7 +40,7 @@ class TweakwiseFilterApplier implements FilterApplierInterface
         $filters = $page->getFilters();
 
         foreach ($filters as $filter) {
-            foreach ($filter->getValue() as $value) {
+            foreach ($filter->getValues() as $value) {
                 if ($value === '') {
                     continue;
                 }
