@@ -103,6 +103,7 @@ class FilterManager
 
         $candidateFilters = array_map(
             static function (Item $item) {
+                // @phpstan-ignore-next-line
                 return new Filter(
                     $item->getFilter()->getUrlKey(),
                     [(string)$item->getAttribute()->getTitle()]
@@ -196,6 +197,7 @@ class FilterManager
 
                 $filters = array_map(
                     static function (Item $item) {
+                        // @phpstan-ignore-next-line
                         return new Filter(
                             $item->getFilter()->getUrlKey(),
                             [(string)$item->getAttribute()->getTitle()]
@@ -518,6 +520,7 @@ class FilterManager
                     return $filter;
                 }
 
+                // @phpstan-ignore-next-line
                 return new Filter($filter->getFacet(), $filter->getValues());
             },
             $filters
