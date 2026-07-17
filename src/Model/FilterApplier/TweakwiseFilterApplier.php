@@ -1,7 +1,7 @@
 <?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
 
 /**
- * @author Bram Gerritsen <bgerritsen@emico.nl>
+ * @author        Bram Gerritsen <bgerritsen@emico.nl>
  * @copyright (c) Emico B.V. 2017
  */
 
@@ -20,6 +20,7 @@ class TweakwiseFilterApplier implements FilterApplierInterface
 
     /**
      * TweakwiseFilterApplier constructor.
+     *
      * @param NavigationContext $navigationContext
      */
     public function __construct(NavigationContext $navigationContext)
@@ -29,6 +30,7 @@ class TweakwiseFilterApplier implements FilterApplierInterface
 
     /**
      * @param LandingPageInterface $page
+     *
      * @return mixed
      */
     public function applyFilters(LandingPageInterface $page)
@@ -38,7 +40,13 @@ class TweakwiseFilterApplier implements FilterApplierInterface
         $filters = $page->getFilters();
 
         foreach ($filters as $filter) {
-            $navigationRequest->addAttributeFilter($filter->getFacet(), $filter->getValue());
+            foreach ($filter->getValue() as $value) {
+                if ($value === '') {
+                    continue;
+                }
+
+                $navigationRequest->addAttributeFilter($filter->getFacet(), $value);
+            }
         }
 
         $filterTemplateId = $page->getTweakwiseFilterTemplate();
@@ -55,7 +63,7 @@ class TweakwiseFilterApplier implements FilterApplierInterface
         if (!$builderTemplateId) {
             return;
         }
-        $navigationRequest->setBuilderTemplateId((int)$builderTemplateId);
+        $navigationRequest->setBuilderTemplateId((int) $builderTemplateId);
     }
 
     /**
