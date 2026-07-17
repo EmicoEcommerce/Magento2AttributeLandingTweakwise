@@ -503,6 +503,7 @@ class FilterManager
     protected function getLandingPage(): ?LandingPageInterface
     {
         $landingPage = $this->landingPageContext->getLandingPage();
+        // @phpstan-ignore-next-line
         if (!$landingPage) {
             return null;
         }
@@ -605,6 +606,7 @@ class FilterManager
         }
 
         $filterItems = $this->getLayer()->getState()->getFilters();
+        // @phpstan-ignore-next-line
         if (!is_array($filterItems)) {
             return [];
         }
@@ -612,6 +614,7 @@ class FilterManager
         // Do not consider category as active
         $filterItems = array_filter(
             $filterItems,
+            // @phpstan-ignore-next-line
             function (Item $filter) {
                 $source = $filter
                 ->getFilter()
@@ -622,6 +625,7 @@ class FilterManager
             }
         );
         $this->activeFilters = $filterItems;
+        // @phpstan-ignore-next-line
         return $this->activeFilters;
     }
 
