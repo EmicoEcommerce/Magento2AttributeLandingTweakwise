@@ -11,7 +11,13 @@
                         </item>
                     </argument>
                 </field>
-                <field name="value" formElement="select" component="Tweakwise_AttributeLandingTweakwise/js/form/element/filter-attribute-value" sortOrder="30"/>
+                <field name="value" formElement="multiselect" component="Tweakwise_AttributeLandingTweakwise/js/form/element/filter-attribute-value" sortOrder="30">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="multiple" xsi:type="boolean">true</item>
+                        </item>
+                    </argument>
+                </field>
                 <field name="attribute_value_other" formElement="input" sortOrder="40">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
