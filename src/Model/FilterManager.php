@@ -62,6 +62,11 @@ class FilterManager
     private array $urlCache = [];
 
     /**
+     * Cache result of Filter constructor signature detection.
+     */
+    private ?bool $filterConstructorAcceptsArray = null;
+
+    /**
      * Maximum amount of active filters considered for partial landing-page subset lookup.
      * Limits 2^n combinations to a sane bound.
      */
@@ -102,10 +107,10 @@ class FilterManager
         $candidateItems = array_merge($this->getAllActiveFilters(), [$filterItem]);
 
         $candidateFilters = array_map(
-            static function (Item $item) {
-                return new Filter(
+            function (Item $item) {
+                return $this->createLandingPageFilter(
                     $item->getFilter()->getUrlKey(),
-                    [(string)$item->getAttribute()->getTitle()] // @phpstan-ignore argument.type
+                    (string)$item->getAttribute()->getTitle()
                 );
             },
             $candidateItems
@@ -195,10 +200,10 @@ class FilterManager
                 }
 
                 $filters = array_map(
-                    static function (Item $item) {
-                        return new Filter(
+                    function (Item $item) {
+                        return $this->createLandingPageFilter(
                             $item->getFilter()->getUrlKey(),
-                            [(string)$item->getAttribute()->getTitle()] // @phpstan-ignore argument.type
+                            (string)$item->getAttribute()->getTitle()
                         );
                     },
                     $subset
@@ -498,7 +503,6 @@ class FilterManager
     protected function getLandingPage(): ?LandingPageInterface
     {
         $landingPage = $this->landingPageContext->getLandingPage();
-        // @phpstan-ignore-next-line
         if (!$landingPage) {
             return null;
         }
@@ -513,16 +517,49 @@ class FilterManager
     protected function normalizeLandingPageFilters(array $filters): array
     {
         return array_map(
-            static function (FilterInterface $filter): Filter {
+            function (FilterInterface $filter): Filter {
                 if ($filter instanceof Filter) {
                     return $filter;
                 }
 
-                // @phpstan-ignore-next-line
-                return new Filter($filter->getFacet(), $filter->getValues());
+                $value = $filter->getValue();
+                if (method_exists($filter, 'getValues')) {
+                    $values = $filter->getValues();
+                    $value = (string)($values[0] ?? '');
+                }
+
+                return $this->createLandingPageFilter($filter->getFacet(), $value);
             },
             $filters
         );
+    }
+
+    private function createLandingPageFilter(string $facet, string $value): Filter
+    {
+        if ($this->filterConstructorAcceptsArray()) {
+            return new Filter($facet, [$value]);
+        }
+
+        return new Filter($facet, $value);
+    }
+
+    private function filterConstructorAcceptsArray(): bool
+    {
+        if ($this->filterConstructorAcceptsArray !== null) {
+            return $this->filterConstructorAcceptsArray;
+        }
+
+        try {
+            $parameter = (new \ReflectionMethod(Filter::class, '__construct'))->getParameters()[1] ?? null;
+            $type = $parameter?->getType();
+            $this->filterConstructorAcceptsArray =
+                $type instanceof \ReflectionNamedType
+                && $type->getName() === 'array';
+        } catch (\ReflectionException) {
+            $this->filterConstructorAcceptsArray = false;
+        }
+
+        return $this->filterConstructorAcceptsArray;
     }
 
     /**
@@ -568,7 +605,6 @@ class FilterManager
         }
 
         $filterItems = $this->getLayer()->getState()->getFilters();
-        // @phpstan-ignore-next-line
         if (!is_array($filterItems)) {
             return [];
         }
@@ -576,7 +612,6 @@ class FilterManager
         // Do not consider category as active
         $filterItems = array_filter(
             $filterItems,
-            // @phpstan-ignore-next-line
             function (Item $filter) {
                 $source = $filter
                 ->getFilter()
@@ -587,7 +622,6 @@ class FilterManager
             }
         );
         $this->activeFilters = $filterItems;
-        // @phpstan-ignore-next-line
         return $this->activeFilters;
     }
 
