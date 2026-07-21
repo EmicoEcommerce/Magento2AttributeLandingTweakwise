@@ -8,9 +8,10 @@ use Emico\AttributeLanding\Api\Data\FilterInterface;
 use Emico\AttributeLanding\Api\Data\LandingPageInterface;
 use Emico\AttributeLanding\Model\LandingPageContext;
 use Emico\CodeCept\Test\Unit;
+use Mockery;
+use Mockery\MockInterface;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use PHPUnit\Framework\MockObject\MockObject;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
 use Tweakwise\AttributeLandingTweakwise\Plugin\PathSlugStrategyPlugin;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\Strategy\FilterSlugManager;
@@ -19,15 +20,15 @@ use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\UrlFactory;
 
 class PathSlugStrategyPluginTest extends Unit
 {
-    private LandingPageContext|MockObject $landingPageContext;
+    private LandingPageContext&MockInterface $landingPageContext;
 
-    private FilterManager|MockObject $filterManager;
+    private FilterManager&MockInterface $filterManager;
 
-    private UrlFactory|MockObject $urlFactory;
+    private UrlFactory&MockInterface $urlFactory;
 
-    private FilterSlugManager|MockObject $filterSlugManager;
+    private FilterSlugManager&MockInterface $filterSlugManager;
 
-    private StoreManagerInterface|MockObject $storeManager;
+    private StoreManagerInterface&MockInterface $storeManager;
 
     private PathSlugStrategyPlugin $subject;
 
@@ -35,11 +36,11 @@ class PathSlugStrategyPluginTest extends Unit
     {
         parent::setUp();
 
-        $this->landingPageContext = $this->createMock(LandingPageContext::class);
-        $this->filterManager = $this->createMock(FilterManager::class);
-        $this->urlFactory = $this->createMock(UrlFactory::class);
-        $this->filterSlugManager = $this->createMock(FilterSlugManager::class);
-        $this->storeManager = $this->createMock(StoreManagerInterface::class);
+        $this->landingPageContext = Mockery::mock(LandingPageContext::class);
+        $this->filterManager = Mockery::mock(FilterManager::class);
+        $this->urlFactory = Mockery::mock(UrlFactory::class);
+        $this->filterSlugManager = Mockery::mock(FilterSlugManager::class);
+        $this->storeManager = Mockery::mock(StoreManagerInterface::class);
 
         $this->subject = new PathSlugStrategyPlugin(
             $this->landingPageContext,
@@ -50,27 +51,33 @@ class PathSlugStrategyPluginTest extends Unit
         );
     }
 
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
+    }
+
     public function testAfterGetCategoryFilterSelectUrlUsesStoreScopedSlug(): void
     {
-        $landingPage = $this->createMock(LandingPageInterface::class);
-        $landingPage->method('getHideSelectedFilters')->willReturn(true);
-        $this->landingPageContext->method('getLandingPage')->willReturn($landingPage);
+        $landingPage = Mockery::mock(LandingPageInterface::class);
+        $landingPage->shouldReceive('getHideSelectedFilters')->andReturn(true);
+        $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
 
-        $this->filterManager->method('getLandingsPageFilters')->willReturn([
+        $this->filterManager->shouldReceive('getLandingsPageFilters')->andReturn([
             $this->createLandingPageFilter('color', 'Black / Zwart'),
         ]);
 
-        $store = $this->createMock(StoreInterface::class);
-        $store->method('getId')->willReturn(2);
-        $this->storeManager->method('getStore')->willReturn($store);
+        $store = Mockery::mock(StoreInterface::class);
+        $store->shouldReceive('getId')->andReturn(2);
+        $this->storeManager->shouldReceive('getStore')->andReturn($store);
 
-        $this->filterSlugManager->method('getLookupTable')->willReturn([
+        $this->filterSlugManager->shouldReceive('getLookupTable')->andReturn([
             2 => ['black / zwart' => 'black-zwart-store'],
             0 => ['black / zwart' => 'black-zwart-default'],
         ]);
 
         $result = $this->subject->afterGetCategoryFilterSelectUrl(
-            $this->createMock(PathSlugStrategy::class),
+            Mockery::mock(PathSlugStrategy::class),
             '/women'
         );
 
@@ -79,24 +86,24 @@ class PathSlugStrategyPluginTest extends Unit
 
     public function testAfterGetCategoryFilterSelectUrlFallsBackToGlobalStoreSlug(): void
     {
-        $landingPage = $this->createMock(LandingPageInterface::class);
-        $landingPage->method('getHideSelectedFilters')->willReturn(true);
-        $this->landingPageContext->method('getLandingPage')->willReturn($landingPage);
+        $landingPage = Mockery::mock(LandingPageInterface::class);
+        $landingPage->shouldReceive('getHideSelectedFilters')->andReturn(true);
+        $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
 
-        $this->filterManager->method('getLandingsPageFilters')->willReturn([
+        $this->filterManager->shouldReceive('getLandingsPageFilters')->andReturn([
             $this->createLandingPageFilter('color', 'Black / Zwart'),
         ]);
 
-        $store = $this->createMock(StoreInterface::class);
-        $store->method('getId')->willReturn(2);
-        $this->storeManager->method('getStore')->willReturn($store);
+        $store = Mockery::mock(StoreInterface::class);
+        $store->shouldReceive('getId')->andReturn(2);
+        $this->storeManager->shouldReceive('getStore')->andReturn($store);
 
-        $this->filterSlugManager->method('getLookupTable')->willReturn([
+        $this->filterSlugManager->shouldReceive('getLookupTable')->andReturn([
             0 => ['black / zwart' => 'black-zwart-default'],
         ]);
 
         $result = $this->subject->afterGetCategoryFilterSelectUrl(
-            $this->createMock(PathSlugStrategy::class),
+            Mockery::mock(PathSlugStrategy::class),
             '/women'
         );
 
@@ -105,22 +112,22 @@ class PathSlugStrategyPluginTest extends Unit
 
     public function testAfterGetCategoryFilterSelectUrlFallsBackToLowercaseFilterValue(): void
     {
-        $landingPage = $this->createMock(LandingPageInterface::class);
-        $landingPage->method('getHideSelectedFilters')->willReturn(true);
-        $this->landingPageContext->method('getLandingPage')->willReturn($landingPage);
+        $landingPage = Mockery::mock(LandingPageInterface::class);
+        $landingPage->shouldReceive('getHideSelectedFilters')->andReturn(true);
+        $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
 
-        $this->filterManager->method('getLandingsPageFilters')->willReturn([
+        $this->filterManager->shouldReceive('getLandingsPageFilters')->andReturn([
             $this->createLandingPageFilter('color', 'Black / Zwart'),
         ]);
 
-        $store = $this->createMock(StoreInterface::class);
-        $store->method('getId')->willReturn(2);
-        $this->storeManager->method('getStore')->willReturn($store);
+        $store = Mockery::mock(StoreInterface::class);
+        $store->shouldReceive('getId')->andReturn(2);
+        $this->storeManager->shouldReceive('getStore')->andReturn($store);
 
-        $this->filterSlugManager->method('getLookupTable')->willReturn([]);
+        $this->filterSlugManager->shouldReceive('getLookupTable')->andReturn([]);
 
         $result = $this->subject->afterGetCategoryFilterSelectUrl(
-            $this->createMock(PathSlugStrategy::class),
+            Mockery::mock(PathSlugStrategy::class),
             '/women'
         );
 
@@ -129,9 +136,9 @@ class PathSlugStrategyPluginTest extends Unit
 
     private function createLandingPageFilter(string $facet, string $value): FilterInterface
     {
-        $filter = $this->createMock(FilterInterface::class);
-        $filter->method('getFacet')->willReturn($facet);
-        $filter->method('getValue')->willReturn($value);
+        $filter = Mockery::mock(FilterInterface::class);
+        $filter->shouldReceive('getFacet')->andReturn($facet);
+        $filter->shouldReceive('getValue')->andReturn($value);
 
         return $filter;
     }
