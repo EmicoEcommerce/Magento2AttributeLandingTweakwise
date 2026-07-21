@@ -134,6 +134,36 @@ class PathSlugStrategyPluginTest extends Unit
         $this->assertSame('/women/color/black / zwart', $result);
     }
 
+    public function testAfterGetCategoryFilterSelectUrlWithMultipleFiltersKeepsOrder(): void
+    {
+        $landingPage = Mockery::mock(LandingPageInterface::class);
+        $landingPage->shouldReceive('getHideSelectedFilters')->andReturn(true);
+        $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
+
+        $this->filterManager->shouldReceive('getLandingsPageFilters')->andReturn([
+            $this->createLandingPageFilter('color', 'Black / Zwart'),
+            $this->createLandingPageFilter('size', 'Large'),
+        ]);
+
+        $store = Mockery::mock(StoreInterface::class);
+        $store->shouldReceive('getId')->andReturn(2);
+        $this->storeManager->shouldReceive('getStore')->andReturn($store);
+
+        $this->filterSlugManager->shouldReceive('getLookupTable')->andReturn([
+            2 => [
+                'black / zwart' => 'black-zwart-store',
+                'large' => 'large-store',
+            ],
+        ]);
+
+        $result = $this->subject->afterGetCategoryFilterSelectUrl(
+            Mockery::mock(PathSlugStrategy::class),
+            '/women'
+        );
+
+        $this->assertSame('/women/color/black-zwart-store/size/large-store', $result);
+    }
+
     private function createLandingPageFilter(string $facet, string $value): FilterInterface
     {
         $filter = Mockery::mock(FilterInterface::class);
