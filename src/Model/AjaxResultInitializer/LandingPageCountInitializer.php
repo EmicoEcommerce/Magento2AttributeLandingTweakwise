@@ -7,13 +7,11 @@ use InvalidArgumentException;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\StoreManagerInterface;
-use Tweakwise\Magento2Tweakwise\Model\AjaxResultInitializer\CountInitializerInterface;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\NavigationContext;
 use Tweakwise\Magento2Tweakwise\Model\Client\Type\PropertiesType;
 
-class LandingPageCountInitializer implements CountInitializerInterface
+class LandingPageCountInitializer
 {
     private const IGNORED_PARAMS = [
         '__tw_ajax_type',
@@ -43,20 +41,33 @@ class LandingPageCountInitializer implements CountInitializerInterface
 
     /**
      * Initialize navigation request for landing-page product count.
-     *
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     * @SuppressWarnings(PHPMD.NPathComplexity)
      */
-    // phpcs:ignore Generic.Metrics.CyclomaticComplexity.TooHigh
     public function initializeForCount(RequestInterface $request): int
     {
-        $pageId = (int)$request->getParam('__tw_object_id');
+        $landingPage = $this->getActiveLandingPage($request);
+
+        $navigationRequest = $this->navigationContext->getRequest();
+        $this->applyCategoryFilter($navigationRequest, $landingPage);
+        $this->applyLandingPageFilters($navigationRequest, $landingPage);
+        $this->applyTemplateIds($navigationRequest, $landingPage);
+
+        $this->applyFilterParams($request, $this->navigationContext);
+
+        /** @var PropertiesType $properties */
+        $properties = $this->navigationContext->getResponse()->getValue('properties');
+
+        return $properties->getNumberOfItems();
+    }
+
+    private function getActiveLandingPage(RequestInterface $request)
+    {
+        $pageId = (int) $request->getParam('__tw_object_id');
         if ($pageId === 0) {
             throw new InvalidArgumentException('No landing page provided for product count request.');
         }
 
         try {
-            $storeId = (int)$this->storeManager->getStore()->getId();
+            $storeId = (int) $this->storeManager->getStore()->getId();
             $landingPage = $this->landingPageRepository->getByIdWithStore($pageId, $storeId);
         } catch (LocalizedException) {
             throw new InvalidArgumentException('Landing page not found.');
@@ -66,21 +77,23 @@ class LandingPageCountInitializer implements CountInitializerInterface
             throw new InvalidArgumentException('Landing page is not active.');
         }
 
-        $navigationRequest = $this->navigationContext->getRequest();
-        $categoryId = (int)$landingPage->getCategoryId();
+        return $landingPage;
+    }
+
+    private function applyCategoryFilter(object $navigationRequest, object $landingPage): void
+    {
+        $categoryId = (int) $landingPage->getCategoryId();
         if ($categoryId === 0) {
             throw new InvalidArgumentException('Landing page has no valid category for product count request.');
         }
 
         $navigationRequest->addCategoryFilter($categoryId);
+    }
 
+    private function applyLandingPageFilters(object $navigationRequest, object $landingPage): void
+    {
         foreach ($landingPage->getFilters() as $filter) {
-            $values = [$filter->getValue()];
-            if (method_exists($filter, 'getValues')) {
-                $values = $filter->{'getValues'}();
-            }
-
-            foreach ($values as $value) {
+            foreach ($this->getFilterValues($filter) as $value) {
                 if ($value === '') {
                     continue;
                 }
@@ -88,7 +101,19 @@ class LandingPageCountInitializer implements CountInitializerInterface
                 $navigationRequest->addAttributeFilter($filter->getFacet(), $value);
             }
         }
+    }
 
+    private function getFilterValues(object $filter): array
+    {
+        if (is_callable([$filter, 'getValues'])) {
+            return (array) call_user_func([$filter, 'getValues']);
+        }
+
+        return [$filter->getValue()];
+    }
+
+    private function applyTemplateIds(object $navigationRequest, object $landingPage): void
+    {
         $filterTemplateId = $landingPage->getTweakwiseFilterTemplate();
         if ($filterTemplateId) {
             $navigationRequest->setTemplateId($filterTemplateId);
@@ -101,15 +126,8 @@ class LandingPageCountInitializer implements CountInitializerInterface
 
         $builderTemplateId = $landingPage->getTweakwiseBuilderTemplate();
         if ($builderTemplateId) {
-            $navigationRequest->setBuilderTemplateId((int)$builderTemplateId);
+            $navigationRequest->setBuilderTemplateId((int) $builderTemplateId);
         }
-
-        $this->applyFilterParams($request, $this->navigationContext);
-
-        /** @var PropertiesType $properties */
-        $properties = $this->navigationContext->getResponse()->getValue('properties');
-
-        return $properties->getNumberOfItems();
     }
 
     private function applyFilterParams(RequestInterface $request, NavigationContext $navigationContext): void
@@ -121,7 +139,7 @@ class LandingPageCountInitializer implements CountInitializerInterface
         $navigationRequest = $navigationContext->getRequest();
 
         foreach ($request->getQuery() as $attribute => $value) {
-            if (in_array(strtolower((string)$attribute), self::IGNORED_PARAMS, true)) {
+            if (in_array(strtolower((string) $attribute), self::IGNORED_PARAMS, true)) {
                 continue;
             }
 
@@ -131,7 +149,7 @@ class LandingPageCountInitializer implements CountInitializerInterface
                     continue;
                 }
 
-                $navigationRequest->addAttributeFilter((string)$attribute, $singleValue);
+                $navigationRequest->addAttributeFilter((string) $attribute, $singleValue);
             }
         }
     }
