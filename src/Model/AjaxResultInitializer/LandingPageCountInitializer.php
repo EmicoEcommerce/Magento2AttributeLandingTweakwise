@@ -3,12 +3,15 @@
 namespace Tweakwise\AttributeLandingTweakwise\Model\AjaxResultInitializer;
 
 use Emico\AttributeLanding\Api\LandingPageRepositoryInterface;
+use Emico\AttributeLanding\Api\Data\FilterInterface;
+use Emico\AttributeLanding\Api\Data\LandingPageInterface;
 use InvalidArgumentException;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\StoreManagerInterface;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\NavigationContext;
+use Tweakwise\Magento2Tweakwise\Model\Client\Request\ProductNavigationRequest;
 use Tweakwise\Magento2Tweakwise\Model\Client\Type\PropertiesType;
 
 class LandingPageCountInitializer
@@ -59,7 +62,7 @@ class LandingPageCountInitializer
         return $properties->getNumberOfItems();
     }
 
-    private function getActiveLandingPage(RequestInterface $request)
+    private function getActiveLandingPage(RequestInterface $request): LandingPageInterface
     {
         $pageId = (int) $request->getParam('__tw_object_id');
         if ($pageId === 0) {
@@ -80,7 +83,7 @@ class LandingPageCountInitializer
         return $landingPage;
     }
 
-    private function applyCategoryFilter(object $navigationRequest, object $landingPage): void
+    private function applyCategoryFilter(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
     {
         $categoryId = (int) $landingPage->getCategoryId();
         if ($categoryId === 0) {
@@ -90,7 +93,7 @@ class LandingPageCountInitializer
         $navigationRequest->addCategoryFilter($categoryId);
     }
 
-    private function applyLandingPageFilters(object $navigationRequest, object $landingPage): void
+    private function applyLandingPageFilters(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
     {
         foreach ($landingPage->getFilters() as $filter) {
             foreach ($this->getFilterValues($filter) as $value) {
@@ -103,16 +106,17 @@ class LandingPageCountInitializer
         }
     }
 
-    private function getFilterValues(object $filter): array
+    private function getFilterValues(FilterInterface $filter): array
     {
-        if (is_callable([$filter, 'getValues'])) {
-            return (array) call_user_func([$filter, 'getValues']);
+        $values = $filter->getValues();
+        if ($values !== []) {
+            return $values;
         }
 
         return [$filter->getValue()];
     }
 
-    private function applyTemplateIds(object $navigationRequest, object $landingPage): void
+    private function applyTemplateIds(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
     {
         $filterTemplateId = $landingPage->getTweakwiseFilterTemplate();
         if ($filterTemplateId) {
@@ -125,9 +129,11 @@ class LandingPageCountInitializer
         }
 
         $builderTemplateId = $landingPage->getTweakwiseBuilderTemplate();
-        if ($builderTemplateId) {
-            $navigationRequest->setBuilderTemplateId((int) $builderTemplateId);
+        if (!$builderTemplateId) {
+            return;
         }
+
+        $navigationRequest->setBuilderTemplateId((int) $builderTemplateId);
     }
 
     private function applyFilterParams(RequestInterface $request, NavigationContext $navigationContext): void
