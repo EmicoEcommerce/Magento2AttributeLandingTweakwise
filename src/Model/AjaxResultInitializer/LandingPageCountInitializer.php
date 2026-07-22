@@ -108,6 +108,7 @@ class LandingPageCountInitializer
 
     private function getFilterValues(FilterInterface $filter): array
     {
+        /** @phpstan-ignore-next-line method.notFound */
         $values = $filter->getValues();
         if ($values !== []) {
             return $values;
