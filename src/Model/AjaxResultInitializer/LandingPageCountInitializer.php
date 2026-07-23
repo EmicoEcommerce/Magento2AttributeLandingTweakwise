@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tweakwise\AttributeLandingTweakwise\Model\AjaxResultInitializer;
 
 use Emico\AttributeLanding\Api\LandingPageRepositoryInterface;
+use Emico\AttributeLanding\Api\Data\FilterInterface;
 use Emico\AttributeLanding\Api\Data\LandingPageInterface;
 use InvalidArgumentException;
 use Magento\Framework\App\RequestInterface;
@@ -84,13 +85,27 @@ class LandingPageCountInitializer extends AbstractCountInitializer implements Co
     private function applyLandingPageFilters(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
     {
         foreach ($landingPage->getFilters() as $filter) {
-            $value = $filter->getValue();
-            if ($value === '') {
-                continue;
-            }
+            foreach ($this->getFilterValues($filter) as $value) {
+                if ($value === '') {
+                    continue;
+                }
 
-            $navigationRequest->addAttributeFilter($filter->getFacet(), $value);
+                $navigationRequest->addAttributeFilter($filter->getFacet(), $value);
+            }
         }
+    }
+
+    /**
+     * @return string[]
+     */
+    private function getFilterValues(FilterInterface $filter): array
+    {
+        $values = $filter->getValues();
+        if ($values !== []) {
+            return $values;
+        }
+
+        return [$filter->getValue()];
     }
 
     private function applyTemplateIds(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
