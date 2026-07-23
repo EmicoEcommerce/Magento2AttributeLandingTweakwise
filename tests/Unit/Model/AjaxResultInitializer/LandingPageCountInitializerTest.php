@@ -86,7 +86,6 @@ class LandingPageCountInitializerTest extends Unit
         $landingPage->shouldReceive('getTweakwiseBuilderTemplate')->andReturn(35);
 
         $filter->shouldReceive('getValue')->andReturn('Sports');
-        $filter->shouldReceive('getValues')->andReturn(['Sports']);
         $filter->shouldReceive('getFacet')->andReturn('activity');
 
         $this->request->shouldReceive('getQuery')->andReturn([

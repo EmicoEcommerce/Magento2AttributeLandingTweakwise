@@ -1,35 +1,23 @@
-<?php // phpcs:ignore SlevomatCodingStandard.TypeHints.DeclareStrictTypes.DeclareStrictTypesMissing
+<?php
+
+declare(strict_types=1);
 
 namespace Tweakwise\AttributeLandingTweakwise\Model\AjaxResultInitializer;
 
 use Emico\AttributeLanding\Api\LandingPageRepositoryInterface;
-use Emico\AttributeLanding\Api\Data\FilterInterface;
 use Emico\AttributeLanding\Api\Data\LandingPageInterface;
 use InvalidArgumentException;
-use Magento\Framework\App\Request\Http as MagentoHttpRequest;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\StoreManagerInterface;
+use Tweakwise\Magento2Tweakwise\Model\AjaxResultInitializer\AbstractCountInitializer;
+use Tweakwise\Magento2Tweakwise\Model\AjaxResultInitializer\CountInitializerInterface;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\NavigationContext;
 use Tweakwise\Magento2Tweakwise\Model\Client\Request\ProductNavigationRequest;
 use Tweakwise\Magento2Tweakwise\Model\Client\Type\PropertiesType;
 
-class LandingPageCountInitializer
+class LandingPageCountInitializer extends AbstractCountInitializer implements CountInitializerInterface
 {
-    private const IGNORED_PARAMS = [
-        '__tw_ajax_type',
-        '__tw_object_id',
-        '__tw_original_url',
-        '__tw_hash',
-        'p',
-        'product_list_order',
-        'product_list_limit',
-        'product_list_mode',
-        'q',
-        '_',
-        'categorie',
-    ];
-
     /**
      * @param LandingPageRepositoryInterface $landingPageRepository
      * @param NavigationContext $navigationContext
@@ -96,25 +84,13 @@ class LandingPageCountInitializer
     private function applyLandingPageFilters(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
     {
         foreach ($landingPage->getFilters() as $filter) {
-            foreach ($this->getFilterValues($filter) as $value) {
-                if ($value === '') {
-                    continue;
-                }
-
-                $navigationRequest->addAttributeFilter($filter->getFacet(), $value);
+            $value = $filter->getValue();
+            if ($value === '') {
+                continue;
             }
-        }
-    }
 
-    private function getFilterValues(FilterInterface $filter): array
-    {
-        /** @phpstan-ignore-next-line method.notFound */
-        $values = $filter->getValues();
-        if ($values !== []) {
-            return $values;
+            $navigationRequest->addAttributeFilter($filter->getFacet(), $value);
         }
-
-        return [$filter->getValue()];
     }
 
     private function applyTemplateIds(ProductNavigationRequest $navigationRequest, LandingPageInterface $landingPage): void
@@ -137,27 +113,4 @@ class LandingPageCountInitializer
         $navigationRequest->setBuilderTemplateId((int) $builderTemplateId);
     }
 
-    private function applyFilterParams(RequestInterface $request, NavigationContext $navigationContext): void
-    {
-        if (!$request instanceof MagentoHttpRequest) {
-            return;
-        }
-
-        $navigationRequest = $navigationContext->getRequest();
-
-        foreach ($request->getQuery() as $attribute => $value) {
-            if (in_array(strtolower((string) $attribute), self::IGNORED_PARAMS, true)) {
-                continue;
-            }
-
-            $values = is_array($value) ? $value : [$value];
-            foreach ($values as $singleValue) {
-                if ($singleValue === '' || $singleValue === null) {
-                    continue;
-                }
-
-                $navigationRequest->addAttributeFilter((string) $attribute, $singleValue);
-            }
-        }
-    }
 }
