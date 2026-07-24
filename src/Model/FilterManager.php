@@ -105,7 +105,7 @@ class FilterManager
             static function (Item $item) {
                 return new Filter(
                     $item->getFilter()->getUrlKey(),
-                    [(string)$item->getAttribute()->getTitle()] // @phpstan-ignore argument.type
+                    [(string)$item->getAttribute()->getTitle()]
                 );
             },
             $candidateItems
@@ -198,7 +198,7 @@ class FilterManager
                     static function (Item $item) {
                         return new Filter(
                             $item->getFilter()->getUrlKey(),
-                            [(string)$item->getAttribute()->getTitle()] // @phpstan-ignore argument.type
+                            [(string)$item->getAttribute()->getTitle()]
                         );
                     },
                     $subset
@@ -518,7 +518,6 @@ class FilterManager
                     return $filter;
                 }
 
-                // @phpstan-ignore-next-line
                 return new Filter($filter->getFacet(), $filter->getValues());
             },
             $filters
