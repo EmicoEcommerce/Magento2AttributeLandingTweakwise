@@ -1,16 +1,19 @@
 define([
-    'Magento_Ui/js/form/element/select',
+    'Magento_Ui/js/form/element/multiselect',
     'jquery',
     'mage/url',
     'uiRegistry'
-], function (Select, $, urlBuilder, registry) {
-    return Select.extend({
+], function (Multiselect, $, urlBuilder, registry) {
+    'use strict';
+
+    return Multiselect.extend({
         attributeFieldName: 'attribute',
         otherFieldName: 'attribute_value_other',
         otherValue: 'tw_other',
+
         initialize: function () {
             this._super();
-            this.savedValue = this.value();
+            this.savedValue = this.normalizeValue(this.value());
             this.subscribeAttributeValue();
 
             return this;
@@ -18,7 +21,7 @@ define([
 
         subscribeAttributeValue: function () {
             this.value.subscribe(function (newAttributeValue) {
-                this.setOtherFieldVisibility(newAttributeValue);
+                this.setOtherFieldVisibility(this.normalizeValue(newAttributeValue));
             }.bind(this));
         },
 
@@ -27,36 +30,94 @@ define([
         },
 
         initFromAttribute: function (attribute) {
-            const currentValue = this.value() ? this.value() : this.savedValue;
+            const currentValue = this.value() ? this.normalizeValue(this.value()) : this.savedValue;
+
             this.fetchOptions(attribute).then(() => {
                 this.restoreValue(currentValue);
-                this.setOtherFieldVisibility(this.value())
+                this.setOtherFieldVisibility(this.normalizeValue(this.value()));
             });
         },
 
-        setOtherFieldVisibility: function (selectedAttributeValue, otherFieldValue = null) {
+        setOtherFieldVisibility: function (selectedAttributeValues, otherFieldValue = null) {
             registry.get(`${this.parentName}.${this.otherFieldName}`, function (otherField) {
-                const otherFieldVisible = selectedAttributeValue === this.otherValue
+                const values = this.normalizeValue(selectedAttributeValues);
+                const otherFieldVisible = values.includes(this.otherValue);
+
                 otherField.disabled(!otherFieldVisible);
-                if (selectedAttributeValue && !otherFieldVisible) {
+
+                if (values.length && !otherFieldVisible) {
                     otherField.value('');
-                } else if (otherFieldValue) {
+                    return;
+                }
+
+                if (otherFieldValue) {
                     otherField.value(otherFieldValue);
                 }
             }.bind(this));
         },
 
         restoreValue: function (valueToRestore) {
-            const optionExists = this.options().some(function (option) {
-                return option.value === valueToRestore;
-            }.bind(this));
+            const valuesToRestore = this.normalizeValue(valueToRestore);
 
-            if (optionExists) {
-                this.value(valueToRestore);
-            } else {
-                this.value(this.otherValue);
-                this.setOtherFieldVisibility(this.otherValue, valueToRestore);
+            if (!valuesToRestore.length) {
+                this.value([]);
+                return;
             }
+
+            const optionValues = this.options().map(function (option) {
+                return option.value;
+            });
+
+            const existingValues = valuesToRestore.filter(function (value) {
+                return optionValues.includes(value);
+            });
+
+            const missingValues = valuesToRestore.filter(function (value) {
+                return !optionValues.includes(value);
+            });
+
+            if (existingValues.length && !missingValues.length) {
+                this.value(existingValues);
+                return;
+            }
+
+            if (missingValues.length) {
+                this.value([this.otherValue]);
+                this.setOtherFieldVisibility([this.otherValue], missingValues.join(', '));
+                return;
+            }
+
+            this.value([]);
+        },
+
+        normalizeValue: function (value) {
+            if (!value) {
+                return [];
+            }
+
+            if (Array.isArray(value)) {
+                return value.filter(function (item) {
+                    return item !== null && item !== undefined && item !== '';
+                });
+            }
+
+            if (typeof value !== 'string') {
+                return [String(value)];
+            }
+
+            try {
+                const decodedValue = JSON.parse(value);
+
+                if (Array.isArray(decodedValue)) {
+                    return decodedValue.filter(function (item) {
+                        return item !== null && item !== undefined && item !== '';
+                    });
+                }
+            } catch (e) {
+                return [value];
+            }
+
+            return [value];
         },
 
         fetchOptions: function (attribute) {
