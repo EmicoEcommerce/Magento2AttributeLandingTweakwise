@@ -27,10 +27,10 @@ class LandingPagePlugin
                 continue;
             }
 
-            $result[$key]['value'] = array_merge(
-                array_values(array_diff($values, [AbstractFacetController::OTHER_ATTRIBUTE_VALUE])),
-                $this->splitOtherValue($filterAttribute['attribute_value_other'] ?? null),
-            );
+            $result[$key]['value'] = [
+                ...array_values(array_diff($values, [AbstractFacetController::OTHER_ATTRIBUTE_VALUE])),
+                ...$this->splitOtherValue($filterAttribute['attribute_value_other'] ?? null),
+            ];
         }
 
         return $result;
