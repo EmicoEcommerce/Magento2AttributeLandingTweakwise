@@ -6,6 +6,7 @@ namespace Tweakwise\Test\Unit\Model\FilterApplier;
 
 use Emico\AttributeLanding\Model\LandingPage;
 use Emico\CodeCept\Test\Unit;
+use Magento\Framework\Serialize\Serializer\Serialize;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterApplier\TweakwiseFilterApplier;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\NavigationContext;
 use Tweakwise\Magento2Tweakwise\Model\Client\Request\ProductNavigationRequest;
@@ -122,9 +123,11 @@ class TweakwiseFilterApplierTest extends Unit
      */
     private function createLandingPage(array $filters): LandingPage
     {
+        $objectManager = $this->tester->getObjectManager();
+
         /** @var LandingPage $page */
-        $page = $this->tester->getObjectManager()->create(LandingPage::class);
-        $page->setFilterAttributes(serialize($filters));
+        $page = $objectManager->create(LandingPage::class);
+        $page->setFilterAttributes($objectManager->get(Serialize::class)->serialize($filters));
 
         return $page;
     }
