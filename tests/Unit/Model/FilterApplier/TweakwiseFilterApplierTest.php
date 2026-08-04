@@ -6,7 +6,6 @@ namespace Tweakwise\Test\Unit\Model\FilterApplier;
 
 use Emico\AttributeLanding\Model\LandingPage;
 use Emico\CodeCept\Test\Unit;
-use PHPUnit\Framework\MockObject\MockObject;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterApplier\TweakwiseFilterApplier;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\NavigationContext;
 use Tweakwise\Magento2Tweakwise\Model\Client\Request\ProductNavigationRequest;
@@ -18,8 +17,6 @@ class TweakwiseFilterApplierTest extends Unit
 
     private ProductNavigationRequest $request;
 
-    private NavigationContext|MockObject $navigationContext;
-
     private TweakwiseFilterApplier $subject;
 
     protected function setUp(): void
@@ -28,10 +25,10 @@ class TweakwiseFilterApplierTest extends Unit
 
         $this->request = $this->tester->getObjectManager()->create(ProductNavigationRequest::class);
 
-        $this->navigationContext = $this->createMock(NavigationContext::class);
-        $this->navigationContext->method('getRequest')->willReturn($this->request);
+        $navigationContext = $this->createMock(NavigationContext::class);
+        $navigationContext->method('getRequest')->willReturn($this->request);
 
-        $this->subject = new TweakwiseFilterApplier($this->navigationContext);
+        $this->subject = new TweakwiseFilterApplier($navigationContext);
     }
 
     public function testAppliesValuesPickedFromTheList(): void
