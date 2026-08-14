@@ -127,5 +127,4 @@ class LandingPageCountInitializer extends AbstractCountInitializer implements Co
 
         $navigationRequest->setBuilderTemplateId((int) $builderTemplateId);
     }
-
 }
