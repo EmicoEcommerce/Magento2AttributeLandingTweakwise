@@ -40,6 +40,7 @@
     "config": {
         "sort-packages": true,
         "allow-plugins": {
+            "magento/inventory-composer-installer": true,
             "magento/composer-dependency-version-audit-plugin": true,
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "phpstan/extension-installer": true,
