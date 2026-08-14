@@ -4,7 +4,7 @@
     "license": "OSL-3.0",
     "require": {
         "php": "^8.2",
-        "emico/m2-attributelanding": ">=6.0.5",
+        "emico/m2-attributelanding": ">=7.0.0",
         "tweakwise/magento2-tweakwise": ">=10.0.0"
     },
     "require-dev": {
@@ -44,7 +44,8 @@
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "phpstan/extension-installer": true,
             "phpro/grumphp": true,
-            "emico/code-quality": true
+            "emico/code-quality": true,
+            "magento/inventory-composer-installer": true
         }
     }
 }
