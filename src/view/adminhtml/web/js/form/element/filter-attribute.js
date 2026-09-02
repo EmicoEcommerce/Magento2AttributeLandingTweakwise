@@ -1,5 +1,5 @@
 define([
-    'Magento_Ui/js/form/element/select',
+    'Magento_Ui/js/form/element/ui-select',
     'jquery',
     'mage/url',
     'uiRegistry'
@@ -8,6 +8,7 @@ define([
         attributeValueFieldName: 'value',
         otherFieldName: 'attribute_other',
         otherValue: 'tw_other',
+        savedLabel: null,
         initialize: function () {
             this._super();
 
@@ -28,11 +29,24 @@ define([
         },
 
         setInitialValue: function () {
-            return this;
+            return this._super();
+        },
+
+        setCaption: function () {
+            const value = this.value() ?? this.savedValue;
+            const label = this.options().find((option) => {
+                return option.value == value;
+            })?.label ?? this.savedLabel ?? value;
+            if (label && this.savedLabel !== label) {
+                this.savedLabel = label;
+            }
+            return label;
         },
 
         initObservable: function () {
-            this._super().observe(['value']);
+            this._super().observe([
+                'value'
+            ]);
             return this;
         },
 
