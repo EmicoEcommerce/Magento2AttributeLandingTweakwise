@@ -86,18 +86,15 @@ class AjaxNavigationResultPlugin
 
         $page = (int) $this->request->getParam('p');
 
-        // Admin-configured canonical override: never append ?p= to explicit overrides
         $canonicalUrl = $landingPage->getCanonicalUrl();
         if ($canonicalUrl) {
             return $canonicalUrl;
         }
 
         if ($this->alpConfig->isCanonicalSelfReferencingEnabled()) {
-            // Self-referencing: use full URL with current query params (filters), add ?p= when needed
             return $this->appendPageParam($responseUrl, $page);
         }
 
-        // Plain canonical: bare landing page URL + ?p= when needed
         $baseUrl = $this->storeManager->getStore()->getUrl('', ['_direct' => $landingPage->getUrlPath()]);
         return $this->appendPageParam($baseUrl, $page);
     }
@@ -114,6 +111,11 @@ class AjaxNavigationResultPlugin
         }
 
         $urlParts = parse_url($url);
+        if ($urlParts === false) {
+            $separator = str_contains($url, '?') ? '&' : '?';
+            return $url . $separator . http_build_query(['p' => $page]);
+        }
+
         $query = [];
         if (isset($urlParts['query'])) {
             parse_str($urlParts['query'], $query);
