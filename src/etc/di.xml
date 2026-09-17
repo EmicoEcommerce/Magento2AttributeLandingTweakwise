@@ -29,6 +29,20 @@
         </arguments>
     </type>
 
+    <type name="Tweakwise\Magento2Tweakwise\Controller\Ajax\ProductCount">
+        <arguments>
+            <argument name="initializerMap" xsi:type="array">
+                <item name="landingpage" xsi:type="object">Tweakwise\AttributeLandingTweakwise\Model\AjaxResultInitializer\LandingPageCountInitializer</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Tweakwise\AttributeLandingTweakwise\Model\AjaxResultInitializer\LandingPageCountInitializer">
+        <arguments>
+            <argument name="navigationContext" xsi:type="object">Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\CountNavigationContext\Category</argument>
+        </arguments>
+    </type>
+
     <type name="Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url">
         <plugin name="AttributeLandingTweakwise" type="Tweakwise\AttributeLandingTweakwise\Plugin\UrlPlugin" />
     </type>
