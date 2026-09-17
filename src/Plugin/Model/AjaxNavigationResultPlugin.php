@@ -5,7 +5,7 @@ namespace Tweakwise\AttributeLandingTweakwise\Plugin\Model;
 use Emico\AttributeLanding\Model\Config as AlpConfig;
 use Emico\AttributeLanding\Model\LandingPageContext;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
-use Magento\Store\Model\StoreManagerInterface;
+use Magento\Framework\UrlInterface;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
 use Tweakwise\Magento2Tweakwise\Model\AjaxNavigationResult;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url;
@@ -46,7 +46,7 @@ class AjaxNavigationResultPlugin
         Url $url,
         UrlModel $urlModel,
         private readonly AlpConfig $alpConfig,
-        private readonly StoreManagerInterface $storeManager
+        private readonly UrlInterface $urlBuilder
     ) {
         $this->request = $request;
         $this->landingPageContext = $landingPageContext;
@@ -78,12 +78,12 @@ class AjaxNavigationResultPlugin
     public function aroundGetCanonicalUrl(AjaxNavigationResult $subject, callable $proceed, string $responseUrl): string
     {
         $type = $this->request->getParam('__tw_ajax_type');
-        $landingPage = $this->landingPageContext->getLandingPage();
 
-        if ($type !== 'landingpage' || !$landingPage) {
+        if ($type !== 'landingpage' || !$this->landingPageContext->isOnLandingPage()) {
             return $proceed($responseUrl);
         }
 
+        $landingPage = $this->landingPageContext->getLandingPage();
         $page = (int) $this->request->getParam('p');
 
         $canonicalUrl = $landingPage->getCanonicalUrl();
@@ -95,7 +95,7 @@ class AjaxNavigationResultPlugin
             return $this->appendPageParam($responseUrl, $page);
         }
 
-        $baseUrl = $this->storeManager->getStore()->getUrl('', ['_direct' => $landingPage->getUrlPath()]);
+        $baseUrl = $this->urlBuilder->getUrl('', ['_direct' => $landingPage->getUrlPath()]);
         return $this->appendPageParam($baseUrl, $page);
     }
 

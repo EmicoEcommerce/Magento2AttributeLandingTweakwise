@@ -8,11 +8,10 @@ use Emico\AttributeLanding\Api\Data\LandingPageInterface;
 use Emico\AttributeLanding\Model\Config as AlpConfig;
 use Emico\AttributeLanding\Model\LandingPageContext;
 use Emico\CodeCept\Test\Unit;
+use Magento\Framework\UrlInterface;
 use Mockery;
 use Mockery\MockInterface;
 use Magento\Framework\App\Request\Http as MagentoHttpRequest;
-use Magento\Store\Api\Data\StoreInterface;
-use Magento\Store\Model\StoreManagerInterface;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
 use Tweakwise\AttributeLandingTweakwise\Plugin\Model\AjaxNavigationResultPlugin;
 use Tweakwise\Magento2Tweakwise\Model\AjaxNavigationResult;
@@ -33,7 +32,7 @@ class AjaxNavigationResultPluginTest extends Unit
 
     private AlpConfig&MockInterface $alpConfig;
 
-    private StoreManagerInterface&MockInterface $storeManager;
+    private UrlInterface&MockInterface $urlBuilder;
 
     private AjaxNavigationResultPlugin $subject;
 
@@ -45,7 +44,7 @@ class AjaxNavigationResultPluginTest extends Unit
         $this->url = Mockery::mock(Url::class);
         $this->urlModel = Mockery::mock(UrlModel::class);
         $this->alpConfig = Mockery::mock(AlpConfig::class);
-        $this->storeManager = Mockery::mock(StoreManagerInterface::class);
+        $this->urlBuilder = Mockery::mock(UrlInterface::class);
 
         $this->subject = new AjaxNavigationResultPlugin(
             $this->request,
@@ -54,7 +53,7 @@ class AjaxNavigationResultPluginTest extends Unit
             $this->url,
             $this->urlModel,
             $this->alpConfig,
-            $this->storeManager,
+            $this->urlBuilder,
         );
     }
 
@@ -66,13 +65,9 @@ class AjaxNavigationResultPluginTest extends Unit
     public function testAroundGetCanonicalUrlFallsBackToProceedForNonLandingPageRequest(): void
     {
         $this->request->shouldReceive('getParam')->with('__tw_ajax_type')->andReturn('category');
-        $this->landingPageContext->shouldReceive('getLandingPage')->andReturn(null);
+        $this->landingPageContext->shouldReceive('isOnLandingPage')->andReturn(false);
 
-        $proceedCalled = false;
-        $proceed = static function (string $responseUrl) use (&$proceedCalled): string {
-            $proceedCalled = true;
-            return 'proceed:' . $responseUrl;
-        };
+        $proceed = static fn (string $responseUrl): string => 'proceed:' . $responseUrl;
 
         $result = $this->subject->aroundGetCanonicalUrl(
             Mockery::mock(AjaxNavigationResult::class),
@@ -80,7 +75,6 @@ class AjaxNavigationResultPluginTest extends Unit
             'https://example.com/filter-url'
         );
 
-        $this->assertTrue($proceedCalled);
         $this->assertSame('proceed:https://example.com/filter-url', $result);
     }
 
@@ -89,8 +83,9 @@ class AjaxNavigationResultPluginTest extends Unit
         $landingPage = Mockery::mock(LandingPageInterface::class);
 
         $this->request->shouldReceive('getParam')->with('__tw_ajax_type')->andReturn('landingpage');
-        $this->request->shouldReceive('getParam')->with('p')->andReturn('4');
+        $this->landingPageContext->shouldReceive('isOnLandingPage')->andReturn(true);
         $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
+        $this->request->shouldReceive('getParam')->with('p')->andReturn('4');
         $landingPage->shouldReceive('getCanonicalUrl')->andReturn('https://canonical.test/fixed-url');
 
         $result = $this->subject->aroundGetCanonicalUrl(
@@ -107,8 +102,9 @@ class AjaxNavigationResultPluginTest extends Unit
         $landingPage = Mockery::mock(LandingPageInterface::class);
 
         $this->request->shouldReceive('getParam')->with('__tw_ajax_type')->andReturn('landingpage');
-        $this->request->shouldReceive('getParam')->with('p')->andReturn('3');
+        $this->landingPageContext->shouldReceive('isOnLandingPage')->andReturn(true);
         $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
+        $this->request->shouldReceive('getParam')->with('p')->andReturn('3');
         $landingPage->shouldReceive('getCanonicalUrl')->andReturn('');
         $this->alpConfig->shouldReceive('isCanonicalSelfReferencingEnabled')->andReturn(true);
 
@@ -124,16 +120,15 @@ class AjaxNavigationResultPluginTest extends Unit
     public function testAroundGetCanonicalUrlUsesBareLandingPageUrlWhenSelfReferencingDisabled(): void
     {
         $landingPage = Mockery::mock(LandingPageInterface::class);
-        $store = Mockery::mock(StoreInterface::class);
 
         $this->request->shouldReceive('getParam')->with('__tw_ajax_type')->andReturn('landingpage');
-        $this->request->shouldReceive('getParam')->with('p')->andReturn('2');
+        $this->landingPageContext->shouldReceive('isOnLandingPage')->andReturn(true);
         $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
+        $this->request->shouldReceive('getParam')->with('p')->andReturn('2');
         $landingPage->shouldReceive('getCanonicalUrl')->andReturn(null);
         $this->alpConfig->shouldReceive('isCanonicalSelfReferencingEnabled')->andReturn(false);
         $landingPage->shouldReceive('getUrlPath')->andReturn('red-pants.html');
-        $this->storeManager->shouldReceive('getStore')->andReturn($store);
-        $store->shouldReceive('getUrl')->with('', ['_direct' => 'red-pants.html'])->andReturn('https://shop.test/red-pants.html');
+        $this->urlBuilder->shouldReceive('getUrl')->with('', ['_direct' => 'red-pants.html'])->andReturn('https://shop.test/red-pants.html');
 
         $result = $this->subject->aroundGetCanonicalUrl(
             Mockery::mock(AjaxNavigationResult::class),
@@ -149,8 +144,9 @@ class AjaxNavigationResultPluginTest extends Unit
         $landingPage = Mockery::mock(LandingPageInterface::class);
 
         $this->request->shouldReceive('getParam')->with('__tw_ajax_type')->andReturn('landingpage');
-        $this->request->shouldReceive('getParam')->with('p')->andReturn('2');
+        $this->landingPageContext->shouldReceive('isOnLandingPage')->andReturn(true);
         $this->landingPageContext->shouldReceive('getLandingPage')->andReturn($landingPage);
+        $this->request->shouldReceive('getParam')->with('p')->andReturn('2');
         $landingPage->shouldReceive('getCanonicalUrl')->andReturn('');
         $this->alpConfig->shouldReceive('isCanonicalSelfReferencingEnabled')->andReturn(true);
 
