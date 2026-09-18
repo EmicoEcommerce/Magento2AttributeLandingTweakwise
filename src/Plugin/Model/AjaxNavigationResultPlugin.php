@@ -84,7 +84,8 @@ class AjaxNavigationResultPlugin
         }
 
         $landingPage = $this->landingPageContext->getLandingPage();
-        $page = (int) $this->request->getParam('p');
+        $pageParam = $this->request->getParam('p');
+        $page = is_numeric($pageParam) ? (int) $pageParam : 0;
 
         $canonicalUrl = $landingPage->getCanonicalUrl();
         if ($canonicalUrl) {
