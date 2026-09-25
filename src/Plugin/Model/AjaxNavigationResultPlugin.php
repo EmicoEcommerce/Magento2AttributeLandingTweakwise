@@ -2,12 +2,14 @@
 
 namespace Tweakwise\AttributeLandingTweakwise\Plugin\Model;
 
+use Emico\AttributeLanding\Model\Config as AlpConfig;
 use Emico\AttributeLanding\Model\LandingPageContext;
+use Magento\Framework\App\Request\Http as MagentoHttpRequest;
+use Magento\Framework\UrlInterface;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
 use Tweakwise\Magento2Tweakwise\Model\AjaxNavigationResult;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url;
 use Tweakwise\Magento2Tweakwise\Model\Catalog\Layer\Url\UrlModel;
-use Magento\Framework\App\Request\Http as MagentoHttpRequest;
 
 class AjaxNavigationResultPlugin
 {
@@ -42,7 +44,9 @@ class AjaxNavigationResultPlugin
         LandingPageContext $landingPageContext,
         FilterManager $filterManager,
         Url $url,
-        UrlModel $urlModel
+        UrlModel $urlModel,
+        private readonly AlpConfig $alpConfig,
+        private readonly UrlInterface $urlBuilder
     ) {
         $this->request = $request;
         $this->landingPageContext = $landingPageContext;
@@ -63,5 +67,66 @@ class AjaxNavigationResultPlugin
         }
 
         return $proceed();
+    }
+
+    /**
+     * @param AjaxNavigationResult $subject
+     * @param callable $proceed
+     * @param string $responseUrl
+     * @return string
+     */
+    public function aroundGetCanonicalUrl(AjaxNavigationResult $subject, callable $proceed, string $responseUrl): string
+    {
+        $type = $this->request->getParam('__tw_ajax_type');
+
+        if ($type !== 'landingpage' || !$this->landingPageContext->isOnLandingPage()) {
+            return $proceed($responseUrl);
+        }
+
+        $landingPage = $this->landingPageContext->getLandingPage();
+        $pageParam = $this->request->getParam('p');
+        $page = is_numeric($pageParam) ? (int) $pageParam : 0;
+
+        $canonicalUrl = $landingPage->getCanonicalUrl();
+        if ($canonicalUrl) {
+            return $canonicalUrl;
+        }
+
+        if ($this->alpConfig->isCanonicalSelfReferencingEnabled()) {
+            return $this->appendPageParam($responseUrl, $page);
+        }
+
+        $baseUrl = $this->urlBuilder->getUrl('', ['_direct' => $landingPage->getUrlPath()]);
+        return $this->appendPageParam($baseUrl, $page);
+    }
+
+    /**
+     * @param string $url
+     * @param int $page
+     * @return string
+     */
+    private function appendPageParam(string $url, int $page): string
+    {
+        if ($page < 2) {
+            return $url;
+        }
+
+        $urlParts = parse_url($url);
+        if ($urlParts === false) {
+            $separator = str_contains($url, '?') ? '&' : '?';
+            return $url . $separator . http_build_query(['p' => $page]);
+        }
+
+        $query = [];
+        if (isset($urlParts['query'])) {
+            parse_str($urlParts['query'], $query);
+        }
+
+        $query['p'] = $page;
+
+        return (isset($urlParts['scheme']) ? $urlParts['scheme'] . '://' : '')
+            . ($urlParts['host'] ?? '')
+            . ($urlParts['path'] ?? '')
+            . '?' . http_build_query($query);
     }
 }
