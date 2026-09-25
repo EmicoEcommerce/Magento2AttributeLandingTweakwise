@@ -13,7 +13,7 @@ define([
 
         initialize: function () {
             this._super();
-            this.savedValue = this.normalizeValue(this.value());
+            this.initialValue = this.savedValue = this.normalizeValue(this.value());
             this.subscribeAttributeValue();
 
             return this;
