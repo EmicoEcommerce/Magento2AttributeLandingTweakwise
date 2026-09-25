@@ -18,14 +18,38 @@ class LandingPagePlugin
     public function afterGetFrontendFilterAttributes(LandingPage $subject, array $result): array
     {
         foreach ($result as $key => $filterAttribute) {
-            if ($filterAttribute['attribute'] !== AbstractFacetController::OTHER_ATTRIBUTE_VALUE) {
+            if ($filterAttribute['attribute'] === AbstractFacetController::OTHER_ATTRIBUTE_VALUE) {
+                $result[$key]['attribute'] = $filterAttribute['attribute_other'];
+            }
+
+            $values = (array) ($filterAttribute['value'] ?? []);
+            if (!in_array(AbstractFacetController::OTHER_ATTRIBUTE_VALUE, $values, true)) {
                 continue;
             }
 
-            $result[$key]['attribute'] = $filterAttribute['attribute_other'];
-            $result[$key]['value'] = $filterAttribute['attribute_value_other'];
+            $result[$key]['value'] = [
+                ...array_values(array_diff($values, [AbstractFacetController::OTHER_ATTRIBUTE_VALUE])),
+                ...$this->splitOtherValue($filterAttribute['attribute_value_other'] ?? null),
+            ];
         }
 
         return $result;
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return string[]
+     */
+    private function splitOtherValue(mixed $value): array
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map('trim', explode(',', $value)),
+            static fn(string $item) => $item !== '',
+        ));
     }
 }

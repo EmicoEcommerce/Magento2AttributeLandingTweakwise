@@ -3,7 +3,18 @@
     <fieldset name="general">
         <dynamicRows name="filter_attributes" component="Tweakwise_AttributeLandingTweakwise/js/dynamic-rows/dynamic-rows">
             <container name="record">
-                <field name="attribute" formElement="select" component="Tweakwise_AttributeLandingTweakwise/js/form/element/filter-attribute" sortOrder="10"/>
+                <field name="attribute" formElement="select" component="Tweakwise_AttributeLandingTweakwise/js/form/element/filter-attribute"
+                       sortOrder="10" template="ui/grid/filters/elements/ui-select">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="disableLabel" xsi:type="boolean">true</item>
+                            <item name="filterOptions" xsi:type="boolean">true</item>
+                            <item name="levelsVisibility" xsi:type="number">1</item>
+                            <item name="multiple" xsi:type="boolean">false</item>
+                            <item name="showPath" xsi:type="boolean">false</item>
+                        </item>
+                    </argument>
+                </field>
                 <field name="attribute_other" formElement="input" sortOrder="20">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
