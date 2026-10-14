@@ -76,7 +76,7 @@ The attribute and value dropdowns are populated via AJAX controllers:
 
 Both controllers have two paths: the default Tweakwise navigator API, or the optional Tweakwise Backend API (when a token is configured under `Stores → Configuration → Catalog → Tweakwise → Attribute Landing Pages`).
 
-**`ApiClient/BackendApiClient`** — Calls `https://navigator-api.tweakwise.com` using a separate backend token (`TWN-Authentication` header) in addition to the regular instance key. Results are cached for 10 minutes in Magento's cache.
+**`ApiClient/BackendApiClient`** — Calls `https://app-api.tweakwise.com` using a separate backend token (`TWN-Authentication` header) in addition to the regular instance key. It retrieves all pages of attributes and distinct attribute values, then caches results for 10 minutes in Magento's cache.
 
 ### DI Wiring Summary (`etc/di.xml`)
 

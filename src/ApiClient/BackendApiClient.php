@@ -18,7 +18,8 @@ use Tweakwise\AttributeLandingTweakwise\Model\Config;
 
 class BackendApiClient
 {
-    private const TWEAKWISE_BACKEND_API_BASE_URL = 'https://navigator-api.tweakwise.com';
+    private const TWEAKWISE_BACKEND_API_BASE_URL = 'https://app-api.tweakwise.com';
+    private const ATTRIBUTE_PAGE_SIZE = 100;
     private const CACHE_LIFETIME = 600;
 
     /**
@@ -103,22 +104,33 @@ class BackendApiClient
         }
 
         $attributes = [];
+        $offset = 0;
+        $total = null;
         try {
-            $response = $this->doRequest('attribute', $store);
-            $contents = $response->getBody()->getContents();
-            $result = $this->jsonSerializer->unserialize($contents);
+            do {
+                $path = sprintf('attribute?limit=%d&offset=%d', self::ATTRIBUTE_PAGE_SIZE, $offset);
+                $response = $this->doRequest($path, $store);
+                $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
 
-            if (!isset($result['Records'])) {
-                return [];
-            }
+                if (!isset($result['Records']) || !is_array($result['Records'])) {
+                    return [];
+                }
 
-            foreach ($result['Records'] as $record) {
-                $attributes[$record['Id']] = [
-                    'value' => $record['UrlName'],
-                    'label' => $record['Name'],
-                    'id' => $record['Id']
-                ];
-            }
+                foreach ($result['Records'] as $record) {
+                    $attributes[$record['Id']] = [
+                        'value' => $record['UrlName'],
+                        'label' => $record['Name'],
+                        'id' => $record['Id']
+                    ];
+                }
+
+                $recordCount = count($result['Records']);
+                $offset += $recordCount;
+                $total = isset($result['Total']) ? (int)$result['Total'] : null;
+            } while (
+                $recordCount > 0 &&
+                ($total !== null ? $offset < $total : $recordCount === self::ATTRIBUTE_PAGE_SIZE)
+            );
 
             $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
 
@@ -150,9 +162,8 @@ class BackendApiClient
         try {
             $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
             $contents = $response->getBody()->getContents();
-            $result = is_array($this->jsonSerializer->unserialize($contents)) ?
-                $this->jsonSerializer->unserialize($contents) :
-                [];
+            $result = $this->jsonSerializer->unserialize($contents);
+            $result = is_array($result) ? $result : [];
 
             $allAttributes = $result ? $this->getAttributes($store) : [];
 
@@ -163,7 +174,10 @@ class BackendApiClient
 
                 $attributes[] = [
                     'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
-                    'label' => $filterTemplateAttribute['Name'],
+                    'label' => $this->getFilterTemplateAttributeName(
+                        $filterTemplateAttribute,
+                        $allAttributes[$filterTemplateAttribute['AttributeId']]['label']
+                    ),
                     'id' => $filterTemplateAttribute['AttributeId']
                 ];
             }
@@ -180,6 +194,26 @@ class BackendApiClient
             );
             return [];
         }
+    }
+
+    /**
+     * @param array $filterTemplateAttribute
+     * @param string $fallback
+     * @return string
+     */
+    private function getFilterTemplateAttributeName(array $filterTemplateAttribute, string $fallback): string
+    {
+        $translations = $filterTemplateAttribute['NameTranslations'] ?? [];
+        if (is_array($translations)) {
+            foreach ($translations as $translation) {
+                if (isset($translation['Value']) && is_string($translation['Value']) && $translation['Value'] !== '') {
+                    return $translation['Value'];
+                }
+            }
+        }
+
+        $name = $filterTemplateAttribute['Name'] ?? null;
+        return is_string($name) && $name !== '' ? $name : $fallback;
     }
 
     /**
@@ -205,27 +239,43 @@ class BackendApiClient
      */
     public function getAttributeValues(int $attributeId, Store $store): array
     {
-        $cacheKey = $this->getCacheKey('attribute_values', (int)$store->getId(), $attributeId);
+        $cacheKey = $this->getCacheKey('attribute_values_distinct', (int)$store->getId(), $attributeId);
         if ($this->cacheExists($cacheKey)) {
             return $this->getFromCache($cacheKey);
         }
 
         $attributeValues = [];
+        $offset = 0;
+        $total = null;
         try {
-            $response = $this->doRequest(sprintf('attribute/%s/values', $attributeId), $store);
-            $contents = $response->getBody()->getContents();
-            $result = $this->jsonSerializer->unserialize($contents);
+            do {
+                $path = sprintf(
+                    'attribute/%s/values/distinct?limit=%d&offset=%d',
+                    $attributeId,
+                    self::ATTRIBUTE_PAGE_SIZE,
+                    $offset
+                );
+                $response = $this->doRequest($path, $store);
+                $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
 
-            if (!isset($result['Records'])) {
-                return [];
-            }
+                if (!isset($result['Records']) || !is_array($result['Records'])) {
+                    return [];
+                }
 
-            foreach ($result['Records'] as $record) {
-                $attributeValues[] = [
-                    'value' => $record['Value'],
-                    'label' => $record['Value'],
-                ];
-            }
+                foreach ($result['Records'] as $record) {
+                    $attributeValues[] = [
+                        'value' => $record['Value'],
+                        'label' => $record['Value'],
+                    ];
+                }
+
+                $recordCount = count($result['Records']);
+                $offset += $recordCount;
+                $total = isset($result['Total']) ? (int)$result['Total'] : null;
+            } while (
+                $recordCount > 0 &&
+                ($total !== null ? $offset < $total : $recordCount === self::ATTRIBUTE_PAGE_SIZE)
+            );
 
             $this->cache->save($this->jsonSerializer->serialize($attributeValues), $cacheKey, [], $this->getCacheLifetime());
 
