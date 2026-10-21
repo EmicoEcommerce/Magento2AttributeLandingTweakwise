@@ -33,6 +33,26 @@ Configuration can be found under `Stores -> Configuration -> Catalog -> Tweakwis
 
 - **Backend API Access Token** (optional): Enter the backend API token if you want to use the Tweakwise backend API to retrieve attributes when creating attribute landing pages. Leave empty if you manage attribute landing page filters manually.
 
+## API outage safety
+
+When Tweakwise marks the current request as failed, attribute landing pages use
+`NOINDEX` robots metadata, preserving the existing follow/nofollow directive.
+This safety measure also applies when Tweakwise SEO is disabled. After rendering,
+the response additionally includes `X-Robots-Tag: noindex` to cover failures
+detected after the HTML head was rendered, and Magento's no-store/no-cache
+headers. These headers are set before Magento's built-in full-page cache can save
+the response and also prevent Varnish from caching the degraded response.
+Healthy landing pages and non-landing pages retain their normal behavior.
+
+Native fallback does **not** reproduce landing-page preset filters or Tweakwise
+templates: this module applies them to the Tweakwise navigation request, whereas
+native fallback uses Magento's category collection. The base module's
+`MagentoFilterApplier` is not implemented; Tweakwise facet names and values
+cannot safely be assumed to be native Magento attribute codes and option IDs.
+Degraded pages can therefore show broader category results. The protections above
+prevent indexing and full-page caching of those results; they do not restore
+equivalent native filtering or purge previously cached responses.
+
 ## Contributors
 If you want to create a pull request as a contributor, use the guidelines of semantic-release. semantic-release automates the whole package release workflow including: determining the next version number, generating the release notes, and publishing the package.
 By adhering to the commit message format, a release is automatically created with the commit messages as release notes. Follow the guidelines as described in: https://github.com/semantic-release/semantic-release?tab=readme-ov-file#commit-message-format.
