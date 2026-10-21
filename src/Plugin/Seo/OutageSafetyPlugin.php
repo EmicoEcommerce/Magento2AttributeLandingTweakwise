@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tweakwise\AttributeLandingTweakwise\Plugin\Seo;
 
 use Emico\AttributeLanding\Model\LandingPageContext;
+use Laminas\Http\Header\GenericMultiHeader;
 use Magento\Framework\App\Response\Http;
 use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\Framework\View\Result\Layout;
@@ -42,10 +43,29 @@ class OutageSafetyPlugin
         }
 
         // Rendering can encounter an outage after the robots metadata has already been emitted.
-        $response->setHeader('X-Robots-Tag', 'noindex', false);
+        $this->addNoindexHeader($response);
         $response->setNoCacheHeaders();
 
         return $result;
+    }
+
+    private function addNoindexHeader(Http $response): void
+    {
+        $headers = $response->getHeaders();
+        $existing = [];
+        foreach ($headers as $header) {
+            if (strcasecmp($header->getFieldName(), 'X-Robots-Tag') !== 0) {
+                continue;
+            }
+            $existing[] = $header;
+        }
+
+        $headers->getPluginClassLoader()->registerPlugin('xrobotstag', GenericMultiHeader::class);
+        foreach ($existing as $header) {
+            $headers->removeHeader($header);
+            $headers->addHeader(new GenericMultiHeader('X-Robots-Tag', $header->getFieldValue()));
+        }
+        $headers->addHeader(new GenericMultiHeader('X-Robots-Tag', 'noindex'));
     }
 
     private function isDegradedLandingPage(): bool

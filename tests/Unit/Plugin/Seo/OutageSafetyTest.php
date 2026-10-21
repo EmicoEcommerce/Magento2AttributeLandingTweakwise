@@ -24,6 +24,7 @@ use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\Framework\View\Result\Layout as LayoutResult;
 use Magento\PageCache\Model\Cache\Type as PageCache;
 use Magento\PageCache\Model\Config as PageCacheConfig;
+use Tweakwise\AttributeLandingTweakwise\Plugin\Seo\OutageSafetyPlugin;
 use Tweakwise\Magento2Tweakwise\Model\Config;
 use Tweakwise\Test\Support\UnitTester;
 
@@ -114,7 +115,7 @@ class OutageSafetyTest extends Unit
         if ($landingPage && $outage) {
             $this->assertStringContainsString('no-store', $response->getHeader('Cache-Control')->getFieldValue());
             $this->assertStringContainsString('noindex', $response->getHeaders()->toString());
-            $this->assertStringContainsString('nofollow', $response->getHeader('X-Robots-Tag')->getFieldValue());
+            $this->assertStringContainsString('nofollow', $response->getHeaders()->toString());
         } else {
             $this->assertStringContainsString('public', $response->getHeader('Cache-Control')->getFieldValue());
             $this->assertSame('nofollow', $response->getHeader('X-Robots-Tag')->getFieldValue());
@@ -127,6 +128,42 @@ class OutageSafetyTest extends Unit
             'late outage on landing page' => [true, true],
             'healthy landing page' => [true, false],
             'outage outside landing page' => [false, true],
+        ];
+    }
+
+    /**
+     * @dataProvider existingHeadersProvider
+     */
+    public function testSerializedRobotsHeadersPreserveExistingValues(array $values): void
+    {
+        $objectManager = $this->tester->getObjectManager();
+        $objectManager->get(LandingPageContext::class)
+            ->setLandingPage($objectManager->create(LandingPage::class));
+        $objectManager->get(Config::class)->setTweakwiseExceptionThrown(true);
+        $response = $objectManager->create(Http::class);
+        foreach ($values as $value) {
+            $response->setHeader('X-Robots-Tag', $value, false);
+        }
+        $plugin = $objectManager->create(OutageSafetyPlugin::class);
+        $layout = $this->createMock(LayoutResult::class);
+        $plugin->afterRenderResult($layout, $layout, $response);
+
+        $this->assertSame(
+            array_merge($values, ['noindex']),
+            $response->getHeaders()->toArray()['X-Robots-Tag']
+        );
+        foreach (array_merge($values, ['noindex']) as $value) {
+            $this->assertStringContainsString('X-Robots-Tag: ' . $value . "\r\n", $response->getHeaders()->toString());
+        }
+    }
+
+    public static function existingHeadersProvider(): array
+    {
+        return [
+            'no existing header' => [[]],
+            'global directives' => [['nofollow, noarchive']],
+            'crawler-specific directives' => [['googlebot: nofollow']],
+            'multiple headers' => [['nofollow', 'googlebot: nosnippet']],
         ];
     }
 
