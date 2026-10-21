@@ -6,6 +6,7 @@ namespace Tweakwise\AttributeLandingTweakwise\Plugin\Seo;
 
 use Emico\AttributeLanding\Model\LandingPageContext;
 use Laminas\Http\Header\GenericMultiHeader;
+use Laminas\Http\Header\HeaderInterface;
 use Magento\Framework\App\Response\Http;
 use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\Framework\View\Result\Layout;
@@ -53,6 +54,7 @@ class OutageSafetyPlugin
     {
         $headers = $response->getHeaders();
         $existing = [];
+        /** @var HeaderInterface $header */
         foreach ($headers as $header) {
             if (strcasecmp($header->getFieldName(), 'X-Robots-Tag') !== 0) {
                 continue;
