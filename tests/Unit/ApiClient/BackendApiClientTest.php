@@ -40,6 +40,8 @@ class BackendApiClientTest extends Unit
 
     private BackendApiClient $subject;
 
+    private array $requestPaths = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -97,5 +99,97 @@ class BackendApiClientTest extends Unit
             $baseUrlConstant,
             'BackendApiClient must call the new App API, not the legacy navigator-api endpoint.'
         );
+    }
+
+    public function testGetAttributesReadsAllPages(): void
+    {
+        $this->preparePaginatedResponses(
+            'attribute',
+            $this->createAttributeRecords(1, 100),
+            $this->createAttributeRecords(101, 1)
+        );
+
+        $attributes = $this->subject->getAttributes($this->createMock(Store::class));
+
+        $this->assertCount(101, $attributes);
+        $this->assertSame('attribute-101', $attributes[101]['value']);
+        $this->assertSame(
+            ['attribute?limit=100&offset=0', 'attribute?limit=100&offset=100'],
+            $this->requestPaths
+        );
+    }
+
+    public function testGetAttributeValuesReadsAllPages(): void
+    {
+        $this->preparePaginatedResponses(
+            'attribute/5/values/distinct',
+            $this->createValueRecords(1, 100),
+            $this->createValueRecords(101, 1)
+        );
+
+        $values = $this->subject->getAttributeValues(5, $this->createMock(Store::class));
+
+        $this->assertCount(101, $values);
+        $this->assertSame('value-101', $values[100]['value']);
+        $this->assertSame(
+            [
+                'attribute/5/values/distinct?limit=100&offset=0',
+                'attribute/5/values/distinct?limit=100&offset=100',
+            ],
+            $this->requestPaths
+        );
+    }
+
+    private function preparePaginatedResponses(string $path, array $firstPage, array $secondPage): void
+    {
+        $this->config->method('getGeneralAuthenticationKey')->willReturn('instance-key');
+        $this->config->method('getBackendApiToken')->willReturn('api-token');
+        $this->cache->method('load')->willReturn(false);
+        $this->cache->method('save')->willReturn(true);
+        $this->jsonSerializer->method('unserialize')->willReturnCallback(
+            static fn(string $contents): array => json_decode($contents, true, flags: JSON_THROW_ON_ERROR)
+        );
+        $this->jsonSerializer->method('serialize')->willReturn('serialized');
+
+        $this->requestPaths = [];
+        $this->httpClient->expects($this->exactly(2))
+            ->method('request')
+            ->willReturnCallback(function (string $method, string $requestPath) use ($path, $firstPage, $secondPage): Response {
+                $this->assertSame('GET', $method);
+                $offset = count($this->requestPaths) * 100;
+                $this->assertSame(sprintf('%s?limit=100&offset=%d', $path, $offset), $requestPath);
+                $this->requestPaths[] = $requestPath;
+
+                $page = $offset === 0 ? $firstPage : $secondPage;
+
+                return new Response(200, [], json_encode([
+                    'Total' => 101,
+                    'Records' => $page,
+                ], JSON_THROW_ON_ERROR));
+            });
+    }
+
+    private function createAttributeRecords(int $firstId, int $count): array
+    {
+        $records = [];
+        for ($id = $firstId; $id < $firstId + $count; $id++) {
+            $records[] = [
+                'Id' => $id,
+                'UrlName' => 'attribute-' . $id,
+                'Name' => 'Attribute ' . $id,
+            ];
+        }
+
+        return $records;
+    }
+
+    private function createValueRecords(int $firstId, int $count): array
+    {
+        $records = [];
+        for ($id = $firstId; $id < $firstId + $count; $id++) {
+            $records[] = ['Value' => 'value-' . $id];
+        }
+
+        return $records;
     }
 }

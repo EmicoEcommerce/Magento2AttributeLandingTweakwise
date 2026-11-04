@@ -104,33 +104,14 @@ class BackendApiClient
         }
 
         $attributes = [];
-        $offset = 0;
-        $total = null;
         try {
-            do {
-                $path = sprintf('attribute?limit=%d&offset=%d', self::ATTRIBUTE_PAGE_SIZE, $offset);
-                $response = $this->doRequest($path, $store);
-                $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
-
-                if (!isset($result['Records']) || !is_array($result['Records'])) {
-                    return [];
-                }
-
-                foreach ($result['Records'] as $record) {
-                    $attributes[$record['Id']] = [
-                        'value' => $record['UrlName'],
-                        'label' => $record['Name'],
-                        'id' => $record['Id']
-                    ];
-                }
-
-                $recordCount = count($result['Records']);
-                $offset += $recordCount;
-                $total = isset($result['Total']) ? (int)$result['Total'] : null;
-            } while (
-                $recordCount > 0 &&
-                ($total !== null ? $offset < $total : $recordCount === self::ATTRIBUTE_PAGE_SIZE)
-            );
+            foreach ($this->getPaginatedRecords($store, 'attribute') as $record) {
+                $attributes[$record['Id']] = [
+                    'value' => $record['UrlName'],
+                    'label' => $record['Name'],
+                    'id' => $record['Id']
+                ];
+            }
 
             $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
 
@@ -217,6 +198,38 @@ class BackendApiClient
     }
 
     /**
+     * @param Store $store
+     * @param string $path
+     * @return array
+     * @throws GuzzleException
+     * @throws Exception
+     */
+    private function getPaginatedRecords(Store $store, string $path): array
+    {
+        $records = [];
+        $offset = 0;
+        $total = null;
+        do {
+            $requestPath = sprintf('%s?limit=%d&offset=%d', $path, self::ATTRIBUTE_PAGE_SIZE, $offset);
+            $response = $this->doRequest($requestPath, $store);
+            $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
+            if (!isset($result['Records']) || !is_array($result['Records'])) {
+                return [];
+            }
+
+            $records = array_merge($records, $result['Records']);
+            $recordCount = count($result['Records']);
+            $offset += $recordCount;
+            $total = isset($result['Total']) ? (int)$result['Total'] : null;
+        } while (
+            $recordCount > 0 &&
+            ($total !== null ? $offset < $total : $recordCount === self::ATTRIBUTE_PAGE_SIZE)
+        );
+
+        return $records;
+    }
+
+    /**
      * @param string $attributeCode
      * @param Store $store
      * @return int|null
@@ -245,37 +258,14 @@ class BackendApiClient
         }
 
         $attributeValues = [];
-        $offset = 0;
-        $total = null;
         try {
-            do {
-                $path = sprintf(
-                    'attribute/%s/values/distinct?limit=%d&offset=%d',
-                    $attributeId,
-                    self::ATTRIBUTE_PAGE_SIZE,
-                    $offset
-                );
-                $response = $this->doRequest($path, $store);
-                $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
-
-                if (!isset($result['Records']) || !is_array($result['Records'])) {
-                    return [];
-                }
-
-                foreach ($result['Records'] as $record) {
-                    $attributeValues[] = [
-                        'value' => $record['Value'],
-                        'label' => $record['Value'],
-                    ];
-                }
-
-                $recordCount = count($result['Records']);
-                $offset += $recordCount;
-                $total = isset($result['Total']) ? (int)$result['Total'] : null;
-            } while (
-                $recordCount > 0 &&
-                ($total !== null ? $offset < $total : $recordCount === self::ATTRIBUTE_PAGE_SIZE)
-            );
+            $path = sprintf('attribute/%s/values/distinct', $attributeId);
+            foreach ($this->getPaginatedRecords($store, $path) as $record) {
+                $attributeValues[] = [
+                    'value' => $record['Value'],
+                    'label' => $record['Value'],
+                ];
+            }
 
             $this->cache->save($this->jsonSerializer->serialize($attributeValues), $cacheKey, [], $this->getCacheLifetime());
 
