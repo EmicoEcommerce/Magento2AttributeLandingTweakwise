@@ -157,6 +157,37 @@ class OutageSafetyTest extends Unit
         }
     }
 
+    public function testNoindexHeaderIsNotDuplicated(): void
+    {
+        $objectManager = $this->tester->getObjectManager();
+        $objectManager->get(LandingPageContext::class)
+            ->setLandingPage($objectManager->create(LandingPage::class));
+        $objectManager->get(Config::class)->setTweakwiseExceptionThrown(true);
+        $response = $objectManager->create(Http::class);
+        $response->setHeader('X-Robots-Tag', 'nofollow', false);
+        $plugin = $objectManager->create(OutageSafetyPlugin::class);
+        $layout = $this->createMock(LayoutResult::class);
+        $plugin->afterRenderResult($layout, $layout, $response);
+        $plugin->afterRenderResult($layout, $layout, $response);
+
+        $this->assertSame(['nofollow', 'noindex'], $response->getHeaders()->toArray()['X-Robots-Tag']);
+    }
+
+    public function testExistingNoindexHeaderIsKept(): void
+    {
+        $objectManager = $this->tester->getObjectManager();
+        $objectManager->get(LandingPageContext::class)
+            ->setLandingPage($objectManager->create(LandingPage::class));
+        $objectManager->get(Config::class)->setTweakwiseExceptionThrown(true);
+        $response = $objectManager->create(Http::class);
+        $response->setHeader('X-Robots-Tag', 'noindex, nofollow', false);
+        $plugin = $objectManager->create(OutageSafetyPlugin::class);
+        $layout = $this->createMock(LayoutResult::class);
+        $plugin->afterRenderResult($layout, $layout, $response);
+
+        $this->assertSame('noindex, nofollow', $response->getHeader('X-Robots-Tag')->getFieldValue());
+    }
+
     public static function existingHeadersProvider(): array
     {
         return [

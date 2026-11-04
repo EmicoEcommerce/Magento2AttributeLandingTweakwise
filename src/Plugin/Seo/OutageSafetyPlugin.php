@@ -59,9 +59,14 @@ class OutageSafetyPlugin
             if (strcasecmp($header->getFieldName(), 'X-Robots-Tag') !== 0) {
                 continue;
             }
+            if (stripos($header->getFieldValue(), 'noindex') !== false) {
+                return;
+            }
             $existing[] = $header;
         }
 
+        // Laminas replaces headers of the same name unless they are multi-value headers, which would drop
+        // existing X-Robots-Tag values, so existing headers are converted as well.
         $headers->getPluginClassLoader()->registerPlugin('xrobotstag', GenericMultiHeader::class);
         foreach ($existing as $header) {
             $headers->removeHeader($header);
@@ -72,6 +77,6 @@ class OutageSafetyPlugin
 
     private function isDegradedLandingPage(): bool
     {
-        return $this->landingPageContext->isOnLandingPage() && $this->config->getTweakwiseExceptionTrown();
+        return $this->landingPageContext->isOnLandingPage() && $this->config->getTweakwiseExceptionThrown();
     }
 }
