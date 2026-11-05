@@ -15,6 +15,7 @@ use Magento\Store\Model\Store;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
+use UnexpectedValueException;
 
 class BackendApiClient
 {
@@ -213,8 +214,10 @@ class BackendApiClient
             $requestPath = sprintf('%s?limit=%d&offset=%d', $path, self::ATTRIBUTE_PAGE_SIZE, $offset);
             $response = $this->doRequest($requestPath, $store);
             $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
-            if (!isset($result['Records']) || !is_array($result['Records'])) {
-                return [];
+            if (!is_array($result) || !isset($result['Records']) || !is_array($result['Records'])) {
+                throw new UnexpectedValueException(
+                    sprintf('Unexpected response from Tweakwise App API for "%s"', $requestPath)
+                );
             }
 
             $records = array_merge($records, $result['Records']);

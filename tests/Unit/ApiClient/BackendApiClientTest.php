@@ -140,6 +140,31 @@ class BackendApiClientTest extends Unit
         );
     }
 
+    public function testGetAttributesDoesNotCacheWhenAPageHasAnUnexpectedResponse(): void
+    {
+        $store = $this->createMock(Store::class);
+        $this->config->method('getGeneralAuthenticationKey')->willReturn('instance-key');
+        $this->config->method('getBackendApiToken')->willReturn('api-token');
+        $this->cache->method('load')->willReturn(false);
+        $this->cache->expects($this->never())->method('save');
+        $this->jsonSerializer->method('unserialize')->willReturnCallback(
+            static fn(string $contents): array => json_decode($contents, true, flags: JSON_THROW_ON_ERROR)
+        );
+        $this->logger->expects($this->once())->method('critical');
+
+        $this->httpClient->expects($this->exactly(2))
+            ->method('request')
+            ->willReturnOnConsecutiveCalls(
+                new Response(200, [], json_encode([
+                    'Total' => 101,
+                    'Records' => $this->createAttributeRecords(1, 100),
+                ], JSON_THROW_ON_ERROR)),
+                new Response(200, [], '{"unexpected":"response"}')
+            );
+
+        $this->assertSame([], $this->subject->getAttributes($store));
+    }
+
     private function preparePaginatedResponses(string $path, array $firstPage, array $secondPage): void
     {
         $this->config->method('getGeneralAuthenticationKey')->willReturn('instance-key');
