@@ -156,20 +156,7 @@ class BackendApiClient
                 return [];
             }
 
-            foreach ($result as $filterTemplateAttribute) {
-                if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
-                    continue;
-                }
-
-                $attributes[] = [
-                    'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
-                    'label' => $this->getFilterTemplateAttributeName(
-                        $filterTemplateAttribute,
-                        $allAttributes[$filterTemplateAttribute['AttributeId']]['label']
-                    ),
-                    'id' => $filterTemplateAttribute['AttributeId']
-                ];
-            }
+            $attributes = $this->mapFilterTemplateAttributes($result, $allAttributes);
 
             $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
 
@@ -183,6 +170,33 @@ class BackendApiClient
             );
             return [];
         }
+    }
+
+    /**
+     * @param array $filterTemplateAttributes
+     * @param array $allAttributes
+     * @return array
+     */
+    private function mapFilterTemplateAttributes(array $filterTemplateAttributes, array $allAttributes): array
+    {
+        $attributes = [];
+        foreach ($filterTemplateAttributes as $filterTemplateAttribute) {
+            $attributeId = $filterTemplateAttribute['AttributeId'];
+            if (!isset($allAttributes[$attributeId])) {
+                continue;
+            }
+
+            $attributes[] = [
+                'value' => $allAttributes[$attributeId]['value'],
+                'label' => $this->getFilterTemplateAttributeName(
+                    $filterTemplateAttribute,
+                    $allAttributes[$attributeId]['label']
+                ),
+                'id' => $attributeId
+            ];
+        }
+
+        return $attributes;
     }
 
     /**
