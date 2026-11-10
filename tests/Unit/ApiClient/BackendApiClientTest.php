@@ -7,6 +7,7 @@ namespace Tweakwise\Test\Unit\ApiClient;
 use Emico\CodeCept\Test\Unit;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Psr7\Response;
+use LogicException;
 use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Store\Model\Store;
@@ -138,6 +139,94 @@ class BackendApiClientTest extends Unit
             ],
             $this->requestPaths
         );
+    }
+
+    public function testGetAttributesFromFilterTemplateReadsFlatResponse(): void
+    {
+        $store = $this->createMock(Store::class);
+        $this->config->method('getGeneralAuthenticationKey')->willReturn('instance-key');
+        $this->config->method('getBackendApiToken')->willReturn('api-token');
+        $this->cache->method('load')->willReturn(false);
+        $this->cache->method('save')->willReturn(true);
+        $this->jsonSerializer->method('unserialize')->willReturnCallback(
+            static fn(string $contents): array => json_decode($contents, true, flags: JSON_THROW_ON_ERROR)
+        );
+        $this->jsonSerializer->method('serialize')->willReturn('serialized');
+
+        $this->httpClient->expects($this->exactly(2))
+            ->method('request')
+            ->willReturnCallback(static function (string $method, string $path): Response {
+                if ($method !== 'GET') {
+                    throw new LogicException('Expected GET request.');
+                }
+
+                if ($path === 'filtertemplate/9/attribute') {
+                    return new Response(200, [], json_encode([
+                        [
+                            'AttributeId' => 1,
+                            'NameTranslations' => [
+                                ['LanguageId' => 1, 'Value' => 'Translated color'],
+                            ],
+                        ],
+                    ], JSON_THROW_ON_ERROR));
+                }
+
+                if ($path === 'attribute?limit=100&offset=0') {
+                    return new Response(200, [], json_encode([
+                        'Total' => 1,
+                        'Records' => [
+                            [
+                                'Id' => 1,
+                                'UrlName' => 'attribute-1',
+                                'Name' => 'Attribute 1',
+                            ],
+                        ],
+                    ], JSON_THROW_ON_ERROR));
+                }
+
+                throw new LogicException(sprintf('Unexpected request path "%s".', $path));
+            });
+
+        $this->assertSame(
+            [
+                [
+                    'value' => 'attribute-1',
+                    'label' => 'Translated color',
+                    'id' => 1,
+                ],
+            ],
+            $this->subject->getAttributesFromFilterTemplate($store, 9)
+        );
+    }
+
+    public function testGetAttributesFromFilterTemplateDoesNotCacheWhenAttributesCannotBeLoaded(): void
+    {
+        $store = $this->createMock(Store::class);
+        $this->config->method('getGeneralAuthenticationKey')->willReturn('instance-key');
+        $this->config->method('getBackendApiToken')->willReturn('api-token');
+        $this->cache->method('load')->willReturn(false);
+        $cacheSaveCount = (object)['count' => 0];
+        $this->cache->method('save')->willReturnCallback(
+            static function () use ($cacheSaveCount): bool {
+                $cacheSaveCount->count++;
+                return true;
+            }
+        );
+        $this->jsonSerializer->method('unserialize')->willReturnCallback(
+            static fn(string $contents): array => json_decode($contents, true, flags: JSON_THROW_ON_ERROR)
+        );
+        $this->jsonSerializer->method('serialize')->willReturn('serialized');
+        $this->logger->expects($this->once())->method('critical');
+
+        $this->httpClient->expects($this->exactly(2))
+            ->method('request')
+            ->willReturnOnConsecutiveCalls(
+                new Response(200, [], '[{"AttributeId":1}]'),
+                new Response(200, [], '{"unexpected":"response"}')
+            );
+
+        $this->assertSame([], $this->subject->getAttributesFromFilterTemplate($store, 9));
+        $this->assertSame(0, $cacheSaveCount->count);
     }
 
     public function testGetAttributesDoesNotCacheWhenAPageHasAnUnexpectedResponse(): void

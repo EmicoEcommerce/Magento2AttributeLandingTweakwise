@@ -20,7 +20,7 @@ use UnexpectedValueException;
 class BackendApiClient
 {
     private const TWEAKWISE_BACKEND_API_BASE_URL = 'https://app-api.tweakwise.com';
-    private const ATTRIBUTE_PAGE_SIZE = 100;
+    private const PAGE_SIZE = 100;
     private const CACHE_LIFETIME = 600;
 
     /**
@@ -148,6 +148,13 @@ class BackendApiClient
             $result = is_array($result) ? $result : [];
 
             $allAttributes = $result ? $this->getAttributes($store) : [];
+            if (
+                $result
+                && $allAttributes === []
+                && !$this->cacheExists($this->getCacheKey('attributes', (int)$store->getId()))
+            ) {
+                return [];
+            }
 
             foreach ($result as $filterTemplateAttribute) {
                 if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
@@ -211,7 +218,7 @@ class BackendApiClient
         $offset = 0;
         $total = null;
         do {
-            $requestPath = sprintf('%s?limit=%d&offset=%d', $path, self::ATTRIBUTE_PAGE_SIZE, $offset);
+            $requestPath = sprintf('%s?limit=%d&offset=%d', $path, self::PAGE_SIZE, $offset);
             $response = $this->doRequest($requestPath, $store);
             $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
             if (!is_array($result) || !isset($result['Records']) || !is_array($result['Records'])) {
@@ -226,7 +233,7 @@ class BackendApiClient
             $total = isset($result['Total']) ? (int)$result['Total'] : null;
         } while (
             $recordCount > 0 &&
-            ($total !== null ? $offset < $total : $recordCount === self::ATTRIBUTE_PAGE_SIZE)
+            ($total !== null ? $offset < $total : $recordCount === self::PAGE_SIZE)
         );
 
         return $records;
