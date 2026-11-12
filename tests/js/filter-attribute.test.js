@@ -41,7 +41,7 @@ function createRows(initialRecords) {
     };
     const rows = {
         ...rowsComponent,
-        source: {get: (key) => data[key]},
+        source: {get: (key) => data[key], set: (key, value) => { data[key] = value; }},
         recordData(value) {
             if (value !== undefined) {
                 records = value;
@@ -188,4 +188,138 @@ test('does not replace an unavailable facet before cleanup completes', () => {
     };
     attributeComponent.restoreValue.call(field, 'color');
     expect(value).toBe('color');
+});
+
+test('blocks saving until the latest cleanup has completed successfully', () => {
+    const formComponent = load('form/form.js', [
+        {extend: (methods) => methods}, (message) => alerts.push(message), (message) => message, registry
+    ]);
+    const fixture = createRows([{attribute: 'color'}]);
+    const request = deferredAjax();
+    const save = jest.fn();
+    const form = {...formComponent, source: fixture.rows.source, _super: save};
+    ajax = () => request;
+
+    fixture.rows.refreshAvailableFacets();
+    form.save(true, {});
+    expect(save).not.toHaveBeenCalled();
+    request.resolve([{value: 'color'}]);
+    form.save(true, {});
+    expect(save).toHaveBeenCalledTimes(1);
+});
+
+test('does not save after a failed cleanup', () => {
+    const retry = jest.fn();
+    const findRows = jest.fn(() => ({refreshAvailableFacets: retry}));
+    const formComponent = load('form/form.js', [
+        {extend: (methods) => methods}, (message) => alerts.push(message), (message) => message,
+        {get: findRows}
+    ]);
+    const fixture = createRows([{attribute: 'color'}]);
+    const request = deferredAjax();
+    const save = jest.fn();
+    const form = {...formComponent, name: 'form.form', source: fixture.rows.source, _super: save};
+    ajax = () => request;
+
+    fixture.rows.refreshAvailableFacets();
+    request.reject();
+    form.save(true, {});
+    expect(save).not.toHaveBeenCalled();
+    expect(retry).toHaveBeenCalledTimes(1);
+    expect(findRows).toHaveBeenCalledWith('form.form.general.filter_attributes');
+});
+
+test('subscribes to category and template changes before the first options response', () => {
+    let value = 'color';
+    const subscriptions = [];
+    const field = {
+        ...attributeComponent,
+        _super() {},
+        value(next) { if (next !== undefined) value = next; return value; },
+        setOtherFieldVisibility() {},
+        refreshOptions() {},
+        subscribeAttribute() {},
+        subscribeFilterTemplate() { subscriptions.push('template'); },
+        subscribeCategoryId() { subscriptions.push('category'); }
+    };
+
+    field.initialize();
+    expect(subscriptions).toEqual(['template', 'category']);
+    expect(value).toBe('color');
+});
+
+test('restores the initial value only after the latest options request', async () => {
+    let value = 'color';
+    let options = [];
+    const data = {'data.category_id': '42', 'data.tweakwise_filter_template': '17'};
+    const requests = [];
+    const restored = jest.fn();
+    const field = {
+        ...attributeComponent,
+        initialOptionsPending: true,
+        savedValue: 'color',
+        value(next) { if (next !== undefined) value = next; return value; },
+        options: () => options,
+        source: {get: (key) => data[key]},
+        fetchOptions() {
+            const id = this.optionsRequestId = (this.optionsRequestId || 0) + 1;
+            return new Promise((resolve) => requests.push((result) => {
+                if (id === this.optionsRequestId) options = result;
+                resolve();
+            }));
+        },
+        setRestoredValue: restored,
+        subscribeAttribute: jest.fn(),
+        initAttributeValueField: jest.fn()
+    };
+
+    const oldRequest = field.refreshOptions();
+    data['data.category_id'] = '43';
+    const newRequest = field.refreshOptions();
+    requests[0]([{value: 'old'}]);
+    await oldRequest;
+    expect(restored).not.toHaveBeenCalled();
+    requests[1]([{value: 'color'}]);
+    await newRequest;
+    expect(restored).toHaveBeenCalledTimes(1);
+    expect(field.options()).toEqual([{value: 'color'}]);
+});
+
+test('preserves a user selection made while initial options are loading', async () => {
+    let value = 'color';
+    let resolveRequest;
+    const restored = jest.fn();
+    const field = {
+        ...attributeComponent,
+        initialOptionsPending: true,
+        savedValue: 'color',
+        value(next) { if (next !== undefined) value = next; return value; },
+        source: {get: () => 'current'},
+        fetchOptions: () => new Promise((resolve) => { resolveRequest = resolve; }),
+        setRestoredValue: restored,
+        subscribeAttribute: jest.fn(),
+        initAttributeValueField: jest.fn()
+    };
+
+    const request = field.refreshOptions();
+    field.value('size');
+    resolveRequest();
+    await request;
+    expect(restored).not.toHaveBeenCalled();
+    expect(field.initAttributeValueField).toHaveBeenCalledWith('size');
+});
+
+test('keeps the save blocked while a newer cleanup request is pending', () => {
+    const fixture = createRows([{attribute: 'color'}]);
+    const oldRequest = deferredAjax();
+    const newRequest = deferredAjax();
+    let calls = 0;
+    ajax = () => calls++ === 0 ? oldRequest : newRequest;
+
+    fixture.rows.refreshAvailableFacets();
+    fixture.rows.refreshAvailableFacets();
+    oldRequest.resolve([]);
+    expect(fixture.data['params.facetValidation']).toBe('pending');
+    newRequest.resolve([{value: 'color'}]);
+    expect(fixture.data['params.facetValidation']).toBe('valid');
 });

@@ -13,17 +13,13 @@ define([
             this._super();
 
             this.savedValue = this.value();
-            this.value('');
 
             this.setOtherFieldVisibility(this.savedValue);
 
-            this.fetchOptions().then(function () {
-                this.setRestoredValue();
-                this.subscribeAttribute();
-                this.subscribeFilterTemplate();
-                this.subscribeCategoryId();
-                this.initAttributeValueField(this.value());
-            }.bind(this));
+            this.initialOptionsPending = true;
+            this.subscribeFilterTemplate();
+            this.subscribeCategoryId();
+            this.refreshOptions();
 
             return this;
         },
@@ -85,11 +81,23 @@ define([
             return request.then(() => {
                 if (requestId !== this.optionsRequestId ||
                     filterTemplate !== this.source.get('data.tweakwise_filter_template') ||
-                    categoryId !== this.source.get('data.category_id') ||
-                    currentAttributeValue !== this.value()) {
+                    categoryId !== this.source.get('data.category_id')) {
                     return;
                 }
 
+                if (this.initialOptionsPending) {
+                    this.initialOptionsPending = false;
+                    if (currentAttributeValue === this.value() && this.value() === this.savedValue) {
+                        this.setRestoredValue();
+                    }
+                    this.subscribeAttribute();
+                    this.initAttributeValueField(this.value());
+                    return;
+                }
+
+                if (currentAttributeValue !== this.value()) {
+                    return;
+                }
                 this.restoreValue(currentAttributeValue);
             });
         },

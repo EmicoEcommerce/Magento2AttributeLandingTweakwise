@@ -51,9 +51,11 @@ define([
             const requestId = this.facetRequestId = (this.facetRequestId || 0) + 1;
 
             if (!categoryId || Array.isArray(categoryId)) {
+                this.source.set('params.facetValidation', 'valid');
                 return;
             }
 
+            this.source.set('params.facetValidation', 'pending');
             return $.ajax({
                 url: `${this.source.get('admin_url')}tweakwise/ajax/cleanupfacets`,
                 type: 'POST',
@@ -71,13 +73,16 @@ define([
                     storeId === this.source.get('data.store_id')) {
                     if (!Array.isArray(options) ||
                         !options.every((option) => option && typeof option.value === 'string')) {
+                        this.source.set('params.facetValidation', 'error');
                         this.showFacetError();
                         return;
                     }
                     this.removeInvalidRecords(options);
+                    this.source.set('params.facetValidation', 'valid');
                 }
             }).fail(() => {
                 if (requestId === this.facetRequestId) {
+                    this.source.set('params.facetValidation', 'error');
                     this.showFacetError();
                 }
             });

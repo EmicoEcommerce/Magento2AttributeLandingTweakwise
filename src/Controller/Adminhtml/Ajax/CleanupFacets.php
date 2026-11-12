@@ -35,38 +35,41 @@ class CleanupFacets implements HttpPostActionInterface
         }
 
         $storeId = (int)$this->request->getParam('store_id');
-        $store = $storeId ? $this->storeManager->getStore($storeId) : $this->storeManager->getDefaultStoreView();
-        if (!$store) {
+        $stores = $storeId ? [$this->storeManager->getStore($storeId)] : $this->storeManager->getStores();
+        if (!$stores) {
             throw new LocalizedException(__('A store view is required to check landing page filters.'));
         }
 
         $previousStore = $this->storeManager->getStore();
         $previousStoreParam = $this->request->getParam('store');
         $previousWebsiteParam = $this->request->getParam('website');
-        $this->storeManager->setCurrentStore($store->getId());
-        $this->request->setParams(['store' => $store->getId(), 'website' => 0]);
         try {
-            $facetRequest = $this->requestFactory->create();
-            $facetRequest->setParameter('tn_cid', $this->helper->getTweakwiseId((int)$store->getId(), $categoryId));
-            $template = $this->request->getParam('filter_template');
-            if ($template) {
-                $facetRequest->setParameter('tn_ft', (string)$template);
-            }
-
-            $response = $this->client->request($facetRequest);
-            if (!$response instanceof CleanupFacetResponse || !array_key_exists('facets', $response->toArray())) {
-                throw new LocalizedException(__('Unable to load the available Tweakwise filters.'));
-            }
-
             $facets = [];
-            foreach ($response->getFacets() as $facet) {
-                $facets[] = ['value' => $facet->getFacetSettings()->getUrlKey()];
+            foreach ($stores as $store) {
+                $this->storeManager->setCurrentStore($store->getId());
+                $this->request->setParams(['store' => $store->getId(), 'website' => 0]);
+                $facetRequest = $this->requestFactory->create();
+                $facetRequest->setParameter('tn_cid', $this->helper->getTweakwiseId((int)$store->getId(), $categoryId));
+                $template = $this->request->getParam('filter_template');
+                if ($template) {
+                    $facetRequest->setParameter('tn_ft', (string)$template);
+                }
+
+                $response = $this->client->request($facetRequest);
+                if (!$response instanceof CleanupFacetResponse || !array_key_exists('facets', $response->toArray())) {
+                    throw new LocalizedException(__('Unable to load the available Tweakwise filters.'));
+                }
+
+                foreach ($response->getFacets() as $facet) {
+                    $key = $facet->getFacetSettings()->getUrlKey();
+                    $facets[$key] = ['value' => $key];
+                }
             }
         } finally {
             $this->storeManager->setCurrentStore($previousStore->getId());
             $this->request->setParams(['store' => $previousStoreParam, 'website' => $previousWebsiteParam]);
         }
 
-        return $this->resultJsonFactory->create()->setData($facets);
+        return $this->resultJsonFactory->create()->setData(array_values($facets));
     }
 }
