@@ -61,10 +61,7 @@ define([
             const categoryIdPath = 'emico_attributelanding_page_form.emico_attributelanding_page_form.general.category_id';
             registry.get(categoryIdPath, (categoryField) => {
                 categoryField.value.subscribe((newCategoryId) => {
-                    const currentAttributeValue = this.value();
-                    this.fetchOptions().then(() => {
-                        this.restoreValue(currentAttributeValue);
-                    });
+                    this.refreshOptions();
                 });
             });
         },
@@ -73,11 +70,27 @@ define([
             const filterTemplatePath = 'emico_attributelanding_page_form.emico_attributelanding_page_form.general.tweakwise_filter_template';
             registry.get(filterTemplatePath, (filterTemplateField) => {
                 filterTemplateField.value.subscribe((newFilterTemplate) => {
-                    const currentAttributeValue = this.value();
-                    this.fetchOptions().then(() => {
-                        this.restoreValue(currentAttributeValue);
-                    });
+                    this.refreshOptions();
                 });
+            });
+        },
+
+        refreshOptions: function () {
+            const currentAttributeValue = this.value();
+            const filterTemplate = this.source.get('data.tweakwise_filter_template');
+            const categoryId = this.source.get('data.category_id');
+            const request = this.fetchOptions();
+            const requestId = this.optionsRequestId;
+
+            return request.then(() => {
+                if (requestId !== this.optionsRequestId ||
+                    filterTemplate !== this.source.get('data.tweakwise_filter_template') ||
+                    categoryId !== this.source.get('data.category_id') ||
+                    currentAttributeValue !== this.value()) {
+                    return;
+                }
+
+                this.restoreValue(currentAttributeValue);
             });
         },
 
@@ -117,11 +130,6 @@ define([
 
             if (optionExists) {
                 this.value(valueToRestore);
-            } else {
-                const firstOption = this.options()[0];
-                if (firstOption) {
-                    this.value(firstOption.value);
-                }
             }
         },
 
@@ -130,6 +138,7 @@ define([
             const formKey = $('[name="form_key"]').val();
             const filterTemplate = this.source.get('data.tweakwise_filter_template');
             const categoryId = this.source.get('data.category_id');
+            const requestId = this.optionsRequestId = (this.optionsRequestId || 0) + 1;
 
             return $.ajax({
                 url: url,
@@ -140,7 +149,11 @@ define([
                     filter_template: filterTemplate
                 }
             }).done(function (response) {
-                this.options(response);
+                if (requestId === this.optionsRequestId &&
+                    filterTemplate === this.source.get('data.tweakwise_filter_template') &&
+                    categoryId === this.source.get('data.category_id')) {
+                    this.options(response);
+                }
             }.bind(this));
         },
 

@@ -17,11 +17,26 @@
             </argument>
         </arguments>
     </virtualType>
+    <virtualType name="Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\CleanupFacetRequest"
+                 type="Tweakwise\Magento2Tweakwise\Model\Client\RequestFactory">
+        <arguments>
+            <argument name="type" xsi:type="string">
+                Tweakwise\AttributeLandingTweakwise\Model\Client\Request\CleanupFacetRequest
+            </argument>
+        </arguments>
+    </virtualType>
 
     <type name="Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\Facets">
         <arguments>
             <argument name="requestFactory" xsi:type="object">
                 Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\FacetRequest
+            </argument>
+        </arguments>
+    </type>
+    <type name="Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\CleanupFacets">
+        <arguments>
+            <argument name="requestFactory" xsi:type="object">
+                Tweakwise\AttributeLandingTweakwise\Model\Client\RequestFactory\CleanupFacetRequest
             </argument>
         </arguments>
     </type>

@@ -33,6 +33,15 @@ Configuration can be found under `Stores -> Configuration -> Catalog -> Tweakwis
 
 - **Backend API Access Token** (optional): Enter the backend API token if you want to use the Tweakwise backend API to retrieve attributes when creating attribute landing pages. Leave empty if you manage attribute landing page filters manually.
 
+## JavaScript tests
+
+Run the admin JavaScript tests from the module directory:
+
+```sh
+npm ci
+npm test
+```
+
 ## Contributors
 If you want to create a pull request as a contributor, use the guidelines of semantic-release. semantic-release automates the whole package release workflow including: determining the next version number, generating the release notes, and publishing the package.
 By adhering to the commit message format, a release is automatically created with the commit messages as release notes. Follow the guidelines as described in: https://github.com/semantic-release/semantic-release?tab=readme-ov-file#commit-message-format.
