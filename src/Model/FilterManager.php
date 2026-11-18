@@ -575,8 +575,11 @@ class FilterManager
         // Do not consider category as active
         $filterItems = array_filter(
             $filterItems,
-            // @phpstan-ignore-next-line
-            function (Item $filter) {
+            static function ($filter): bool {
+                if (!$filter instanceof Item) {
+                    return false;
+                }
+
                 $source = $filter
                 ->getFilter()
                 ->getFacet()
