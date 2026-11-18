@@ -105,7 +105,11 @@ define([
             if (remainingRecords.length !== records.length) {
                 this.recordData(remainingRecords);
                 this.reload();
+                this.checkSpinner(this.elems());
                 this.changed(true);
+                alert({
+                    content: $t('Filter attributes that are no longer available for the selected category and template have been removed.')
+                });
             }
         }
     });

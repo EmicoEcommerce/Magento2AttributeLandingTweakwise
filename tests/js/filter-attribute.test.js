@@ -33,6 +33,8 @@ function createRows(initialRecords) {
     let records = initialRecords;
     let reloads = 0;
     let changed = false;
+    let spinner = false;
+    let elements = [];
     const data = {
         'admin_url': '/admin/',
         'data.category_id': '42',
@@ -48,10 +50,26 @@ function createRows(initialRecords) {
             }
             return records;
         },
-        reload: () => reloads++,
+        elems: () => elements,
+        getChildItems: () => records,
+        showSpinner: (value) => { spinner = value; },
+        checkSpinner(elems) {
+            this.showSpinner(!(!this.recordData().length || elems && elems.length === this.getChildItems().length));
+        },
+        reload() {
+            reloads++;
+            elements = [];
+            this.showSpinner(true);
+        },
         changed: (value) => { changed = value; }
     };
-    return {rows, data, get records() { return records; }, get reloads() { return reloads; }, get changed() { return changed; }};
+    return {
+        rows, data,
+        get records() { return records; },
+        get reloads() { return reloads; },
+        get changed() { return changed; },
+        get spinner() { return spinner; }
+    };
 }
 
 function deferredAjax() {
@@ -80,6 +98,40 @@ test('removes unavailable facets across pages and resolves custom facet names in
     expect(Array.from(fixture.records, (record) => record.attribute)).toEqual(['tw_other', '']);
     expect(fixture.reloads).toBe(1);
     expect(fixture.changed).toBe(true);
+});
+
+test('clears the spinner and notifies the user when cleanup removes every filter row', () => {
+    const fixture = createRows([{attribute: 'color'}]);
+    alerts.length = 0;
+
+    fixture.rows.removeInvalidRecords([]);
+
+    expect(fixture.records).toHaveLength(0);
+    expect(fixture.reloads).toBe(1);
+    expect(fixture.spinner).toBe(false);
+    expect(alerts).toEqual([{
+        content: 'Filter attributes that are no longer available for the selected category and template have been removed.'
+    }]);
+});
+
+test('does not notify the user when cleanup retains every filter row', () => {
+    const fixture = createRows([{attribute: 'color'}]);
+    alerts.length = 0;
+
+    fixture.rows.removeInvalidRecords([{value: 'color'}]);
+
+    expect(fixture.reloads).toBe(0);
+    expect(alerts).toHaveLength(0);
+});
+
+test('keeps the spinner until remaining filter rows finish rendering', () => {
+    const fixture = createRows([{attribute: 'color'}, {attribute: 'size'}]);
+
+    fixture.rows.removeInvalidRecords([{value: 'size'}]);
+
+    expect(fixture.spinner).toBe(true);
+    fixture.rows.checkSpinner(fixture.records);
+    expect(fixture.spinner).toBe(false);
 });
 
 test('uses the selected category, template and store for validation', () => {

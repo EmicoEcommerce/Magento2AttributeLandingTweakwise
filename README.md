@@ -34,6 +34,7 @@ Configuration can be found under `Stores -> Configuration -> Catalog -> Tweakwis
 - **Backend API Access Token** (optional): Enter the backend API token if you want to use the Tweakwise backend API to retrieve attributes when creating attribute landing pages. Leave empty if you manage attribute landing page filters manually.
 
 When changing a landing page category or filter template, filter cleanup uses published Tweakwise facets. For a default-scope page, a filter is retained if it is available in any store view. Saving is blocked while the check is running. If it fails, save again to retry the check, then save after it succeeds.
+An alert confirms when unavailable filter attributes have been removed. No confirmation is shown if all filters remain available.
 
 ## JavaScript tests
 
