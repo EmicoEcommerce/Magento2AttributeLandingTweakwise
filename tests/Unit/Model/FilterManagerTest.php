@@ -10,7 +10,9 @@ use Emico\AttributeLanding\Model\LandingPageContext;
 use Emico\AttributeLanding\Model\UrlFinder;
 use Emico\CodeCept\Test\Unit;
 use Magento\Catalog\Model\Layer;
+use Magento\Catalog\Model\Layer\Filter\Item as MagentoFilterItem;
 use Magento\Catalog\Model\Layer\Resolver;
+use Magento\Catalog\Model\Layer\State;
 use Magento\Catalog\Model\Category;
 use PHPUnit\Framework\MockObject\MockObject;
 use Tweakwise\AttributeLandingTweakwise\Model\FilterManager;
@@ -134,6 +136,27 @@ class FilterManagerTest extends Unit
         $result = $this->subject->findLandingPageUrlForFilterItem($selectFilter);
 
         $this->assertSame('https://example.test/landing-page/filter_y/value-y/', $result);
+    }
+
+    public function testGetAllActiveFiltersSkipsMagentoNativeFilterItems(): void
+    {
+        $state = $this->createMock(State::class);
+        $state->method('getFilters')->willReturn([$this->createMock(MagentoFilterItem::class)]);
+
+        $layer = $this->createMock(Layer::class);
+        $layer->method('getState')->willReturn($state);
+        $this->layerResolver->method('get')->willReturn($layer);
+
+        $filterManager = new FilterManager(
+            $this->layerResolver,
+            $this->createMock(FilterHiderInterface::class),
+            $this->landingPageContext,
+            $this->urlFinder,
+            $this->tweakwiseConfig,
+            $this->filterSlugManager
+        );
+
+        $this->assertSame([], $filterManager->getAllActiveFilters());
     }
 
     private function createFilterItem(string $facet, string $value): Item
