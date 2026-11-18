@@ -5,12 +5,10 @@
     "require": {
         "php": "^8.2",
         "emico/m2-attributelanding": ">=8.0.0",
-        "tweakwise/magento2-tweakwise": ">=11.1.0"
+        "tweakwise/magento2-tweakwise": ">=11.2.1"
     },
     "require-dev": {
-        "emico/code-quality": "^10.8",
-        "pdepend/pdepend": "^2.16",
-        "phpmd/phpmd": "^2.15"
+        "emico/code-quality": "^10.8"
     },
     "type": "magento2-module",
     "replace": {
