@@ -115,7 +115,8 @@ class UrlPlugin
 
         // Capture the filter part of the URL and rebuild the URL to from {landingPage}/{filters} to {category}/{filters}
         // @phpstan-ignore-next-line
-        if (preg_match('|' . $landingPage->getUrlRewriteRequestPath() . '(.*)|', $removeUrl, $matches)) {
+        $landingPagePath = preg_quote($landingPage->getUrlRewriteRequestPath(), '|');
+        if (preg_match('|' . $landingPagePath . '(.*)|', $removeUrl, $matches)) {
             $category = $this->getLayer()->getCurrentCategory();
             $categoryUrl = $category->getUrl();
 
