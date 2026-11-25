@@ -44,7 +44,12 @@ define([
             this.visible(true);
         },
 
+        /**
+         * Resolves with whether rows were removed once the latest check succeeds, rejects when it fails.
+         * @returns {Object}
+         */
         refreshAvailableFacets: function () {
+            const result = $.Deferred();
             const categoryId = this.source.get('data.category_id');
             const filterTemplate = this.source.get('data.tweakwise_filter_template');
             const storeId = this.source.get('data.store_id');
@@ -52,11 +57,11 @@ define([
 
             if (!categoryId || Array.isArray(categoryId)) {
                 this.source.set('params.facetValidation', 'valid');
-                return;
+                return result.resolve(false).promise();
             }
 
             this.source.set('params.facetValidation', 'pending');
-            return $.ajax({
+            $.ajax({
                 url: `${this.source.get('admin_url')}tweakwise/ajax/cleanupfacets`,
                 type: 'POST',
                 dataType: 'json',
@@ -67,25 +72,37 @@ define([
                     store_id: storeId
                 }
             }).done((options) => {
-                if (requestId === this.facetRequestId &&
-                    categoryId === this.source.get('data.category_id') &&
-                    filterTemplate === this.source.get('data.tweakwise_filter_template') &&
-                    storeId === this.source.get('data.store_id')) {
-                    if (!Array.isArray(options) ||
-                        !options.every((option) => option && typeof option.value === 'string')) {
-                        this.source.set('params.facetValidation', 'error');
-                        this.showFacetError();
-                        return;
-                    }
-                    this.removeInvalidRecords(options);
-                    this.source.set('params.facetValidation', 'valid');
+                if (requestId !== this.facetRequestId) {
+                    return;
                 }
+                if (categoryId !== this.source.get('data.category_id') ||
+                    filterTemplate !== this.source.get('data.tweakwise_filter_template') ||
+                    storeId !== this.source.get('data.store_id')) {
+                    this.refreshAvailableFacets().then(
+                        (removed) => result.resolve(removed),
+                        () => result.reject()
+                    );
+                    return;
+                }
+                if (!Array.isArray(options) ||
+                    !options.every((option) => option && typeof option.value === 'string')) {
+                    this.source.set('params.facetValidation', 'error');
+                    this.showFacetError();
+                    result.reject();
+                    return;
+                }
+                const removed = this.removeInvalidRecords(options);
+                this.source.set('params.facetValidation', 'valid');
+                result.resolve(removed);
             }).fail(() => {
                 if (requestId === this.facetRequestId) {
                     this.source.set('params.facetValidation', 'error');
                     this.showFacetError();
+                    result.reject();
                 }
             });
+
+            return result.promise();
         },
 
         showFacetError: function () {
@@ -94,6 +111,10 @@ define([
             });
         },
 
+        /**
+         * @param {Array} options
+         * @returns {Boolean} Whether rows were removed
+         */
         removeInvalidRecords: function (options) {
             const availableAttributes = options.map((option) => option.value);
             const records = this.recordData() || [];
@@ -102,15 +123,18 @@ define([
                 return !attribute || availableAttributes.includes(attribute);
             });
 
-            if (remainingRecords.length !== records.length) {
-                this.recordData(remainingRecords);
-                this.reload();
-                this.checkSpinner(this.elems());
-                this.changed(true);
-                alert({
-                    content: $t('Filter attributes that are no longer available for the selected category and template have been removed.')
-                });
+            if (remainingRecords.length === records.length) {
+                return false;
             }
+
+            this.recordData(remainingRecords);
+            this.reload();
+            this.checkSpinner(this.elems());
+            this.changed(true);
+            alert({
+                content: $t('Filter attributes that are no longer available for the selected category and template have been removed.')
+            });
+            return true;
         }
     });
 });

@@ -21,7 +21,7 @@ abstract class AbstractFacetController implements HttpPostActionInterface
      * @param BackendApiClient $backendApiClient
      */
     public function __construct(
-        private readonly Config $config,
+        protected readonly Config $config,
         protected readonly StoreManagerInterface $storeManager,
         protected readonly BackendApiClient $backendApiClient,
     ) {

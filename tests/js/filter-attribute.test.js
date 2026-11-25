@@ -9,6 +9,33 @@ let ajax;
 const alerts = [];
 const jquery = () => ({val: () => 'form-key'});
 jquery.ajax = (options) => ajax(options);
+jquery.Deferred = () => {
+    let state = 'pending';
+    let value;
+    const handlers = {resolved: [], rejected: []};
+    const settle = (next, result) => {
+        if (state === 'pending') {
+            state = next;
+            value = result;
+            handlers[next].forEach((handler) => handler(value));
+        }
+        return deferred;
+    };
+    const on = (type, handler) => {
+        if (handler) {
+            state === type ? handler(value) : handlers[type].push(handler);
+        }
+    };
+    const deferred = {
+        resolve: (result) => settle('resolved', result),
+        reject: () => settle('rejected'),
+        done(handler) { on('resolved', handler); return deferred; },
+        then(onResolved, onRejected) { on('resolved', onResolved); on('rejected', onRejected); return deferred; },
+        promise: () => deferred,
+        state: () => state
+    };
+    return deferred;
+};
 const registry = {get() {}};
 
 function load(file, dependencies) {
@@ -261,7 +288,7 @@ test('blocks saving until the latest cleanup has completed successfully', () => 
 });
 
 test('does not save after a failed cleanup', () => {
-    const retry = jest.fn();
+    const retry = jest.fn(() => jquery.Deferred().promise());
     const findRows = jest.fn(() => ({refreshAvailableFacets: retry}));
     const formComponent = load('form/form.js', [
         {extend: (methods) => methods}, (message) => alerts.push(message), (message) => message,
@@ -374,4 +401,69 @@ test('keeps the save blocked while a newer cleanup request is pending', () => {
     expect(fixture.data['params.facetValidation']).toBe('pending');
     newRequest.resolve([{value: 'color'}]);
     expect(fixture.data['params.facetValidation']).toBe('valid');
+});
+
+test('rechecks instead of staying pending when the context changed during the check', () => {
+    const fixture = createRows([{attribute: 'color'}]);
+    const oldRequest = deferredAjax();
+    const newRequest = deferredAjax();
+    const sent = [];
+    ajax = (options) => { sent.push(options); return sent.length === 1 ? oldRequest : newRequest; };
+
+    fixture.rows.refreshAvailableFacets();
+    fixture.data['data.store_id'] = '3';
+    oldRequest.resolve([]);
+
+    expect(fixture.records).toHaveLength(1);
+    expect(sent).toHaveLength(2);
+    expect(sent[1].data.store_id).toBe('3');
+    newRequest.resolve([{value: 'color'}]);
+    expect(fixture.data['params.facetValidation']).toBe('valid');
+});
+
+describe('saving after a failed cleanup', () => {
+    function setup() {
+        const fixture = createRows([{attribute: 'color'}]);
+        const requests = [];
+        ajax = () => { const request = deferredAjax(); requests.push(request); return request; };
+        const formComponent = load('form/form.js', [
+            {extend: (methods) => methods}, (message) => alerts.push(message), (message) => message,
+            {get: () => fixture.rows}
+        ]);
+        const save = jest.fn();
+        const form = {...formComponent, name: 'form.form', source: fixture.rows.source, _super: save};
+        fixture.rows.refreshAvailableFacets();
+        requests[0].reject();
+        alerts.length = 0;
+        form.save(true, {});
+        return {fixture, requests, save};
+    }
+
+    test('retries without an immediate alert and saves when the retry succeeds', () => {
+        const {requests, save} = setup();
+
+        expect(requests).toHaveLength(2);
+        expect(alerts).toHaveLength(0);
+        requests[1].resolve([{value: 'color'}]);
+        expect(save).toHaveBeenCalledTimes(1);
+        expect(save).toHaveBeenCalledWith(true, {});
+        expect(alerts).toHaveLength(0);
+    });
+
+    test('shows a single alert when the retry fails', () => {
+        const {requests, save} = setup();
+
+        requests[1].reject();
+        expect(save).not.toHaveBeenCalled();
+        expect(alerts).toHaveLength(1);
+    });
+
+    test('does not save when the retry removes filters', () => {
+        const {fixture, requests, save} = setup();
+
+        requests[1].resolve([]);
+        expect(save).not.toHaveBeenCalled();
+        expect(fixture.records).toHaveLength(0);
+        expect(alerts).toHaveLength(1);
+    });
 });

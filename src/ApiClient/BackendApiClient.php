@@ -97,32 +97,8 @@ class BackendApiClient
      */
     public function getAttributes(Store $store): array
     {
-        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId());
-        if ($this->cacheExists($cacheKey)) {
-            return $this->getFromCache($cacheKey);
-        }
-
-        $attributes = [];
         try {
-            $response = $this->doRequest('attribute', $store);
-            $contents = $response->getBody()->getContents();
-            $result = $this->jsonSerializer->unserialize($contents);
-
-            if (!isset($result['Records'])) {
-                return [];
-            }
-
-            foreach ($result['Records'] as $record) {
-                $attributes[$record['Id']] = [
-                    'value' => $record['UrlName'],
-                    'label' => $record['Name'],
-                    'id' => $record['Id']
-                ];
-            }
-
-            $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
-
-            return $attributes;
+            return $this->fetchAttributes($store) ?? [];
         } catch (GuzzleException | Exception $e) {
             $this->logger->critical(
                 'Retrieving attributes from Tweakwise Backend API failed',
@@ -135,42 +111,32 @@ class BackendApiClient
     }
 
     /**
+     * Same as getAttributes(), but throws instead of returning an empty list when the request fails.
+     *
+     * @param Store $store
+     * @return array
+     * @throws GuzzleException
+     * @throws LocalizedException
+     */
+    public function getAttributesOrFail(Store $store): array
+    {
+        $attributes = $this->fetchAttributes($store);
+        if ($attributes === null) {
+            throw new LocalizedException(__('The Tweakwise Backend API returned an invalid attribute response.'));
+        }
+
+        return $attributes;
+    }
+
+    /**
      * @param Store $store
      * @param int $filterTemplate
      * @return array
      */
     public function getAttributesFromFilterTemplate(Store $store, int $filterTemplate): array
     {
-        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId(), filterTemplate: $filterTemplate);
-        if ($this->cacheExists($cacheKey)) {
-            return $this->getFromCache($cacheKey);
-        }
-
-        $attributes = [];
         try {
-            $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
-            $contents = $response->getBody()->getContents();
-            $result = is_array($this->jsonSerializer->unserialize($contents)) ?
-                $this->jsonSerializer->unserialize($contents) :
-                [];
-
-            $allAttributes = $result ? $this->getAttributes($store) : [];
-
-            foreach ($result as $filterTemplateAttribute) {
-                if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
-                    continue;
-                }
-
-                $attributes[] = [
-                    'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
-                    'label' => $filterTemplateAttribute['Name'],
-                    'id' => $filterTemplateAttribute['AttributeId']
-                ];
-            }
-
-            $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
-
-            return $attributes;
+            return $this->fetchAttributesFromFilterTemplate($store, $filterTemplate, false);
         } catch (GuzzleException | Exception $e) {
             $this->logger->critical(
                 'Retrieving filter template attributes from Tweakwise Backend API failed',
@@ -180,6 +146,103 @@ class BackendApiClient
             );
             return [];
         }
+    }
+
+    /**
+     * Same as getAttributesFromFilterTemplate(), but throws instead of returning an empty list when a request fails.
+     *
+     * @param Store $store
+     * @param int $filterTemplate
+     * @return array
+     * @throws GuzzleException
+     * @throws LocalizedException
+     */
+    public function getAttributesFromFilterTemplateOrFail(Store $store, int $filterTemplate): array
+    {
+        return $this->fetchAttributesFromFilterTemplate($store, $filterTemplate, true);
+    }
+
+    /**
+     * @param Store $store
+     * @return array|null Null when the response contains no attribute records
+     * @throws GuzzleException
+     * @throws LocalizedException
+     */
+    private function fetchAttributes(Store $store): ?array
+    {
+        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId());
+        if ($this->cacheExists($cacheKey)) {
+            return $this->getFromCache($cacheKey);
+        }
+
+        $response = $this->doRequest('attribute', $store);
+        $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
+
+        if (!isset($result['Records'])) {
+            return null;
+        }
+
+        $attributes = [];
+        foreach ($result['Records'] as $record) {
+            $attributes[$record['Id']] = [
+                'value' => $record['UrlName'],
+                'label' => $record['Name'],
+                'id' => $record['Id']
+            ];
+        }
+
+        $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
+
+        return $attributes;
+    }
+
+    /**
+     * @param Store $store
+     * @param int $filterTemplate
+     * @param bool $strict
+     * @return array
+     * @throws GuzzleException
+     * @throws LocalizedException
+     */
+    private function fetchAttributesFromFilterTemplate(Store $store, int $filterTemplate, bool $strict): array
+    {
+        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId(), filterTemplate: $filterTemplate);
+        if ($this->cacheExists($cacheKey)) {
+            return $this->getFromCache($cacheKey);
+        }
+
+        $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
+        $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
+        if (!is_array($result)) {
+            if ($strict) {
+                throw new LocalizedException(
+                    __('The Tweakwise Backend API returned an invalid filter template response.')
+                );
+            }
+            $result = [];
+        }
+
+        $allAttributes = [];
+        if ($result) {
+            $allAttributes = $strict ? $this->getAttributesOrFail($store) : $this->getAttributes($store);
+        }
+
+        $attributes = [];
+        foreach ($result as $filterTemplateAttribute) {
+            if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
+                continue;
+            }
+
+            $attributes[] = [
+                'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
+                'label' => $filterTemplateAttribute['Name'],
+                'id' => $filterTemplateAttribute['AttributeId']
+            ];
+        }
+
+        $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
+
+        return $attributes;
     }
 
     /**
