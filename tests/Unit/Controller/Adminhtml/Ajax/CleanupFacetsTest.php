@@ -11,11 +11,15 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use Magento\Backend\App\AbstractAction;
+use Magento\Backend\App\Action\Context;
 use Mockery;
 use Mockery\MockInterface;
 use RuntimeException;
 use Tweakwise\AttributeLandingTweakwise\ApiClient\BackendApiClient;
 use Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\CleanupFacets;
+use Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\FacetAttributes;
+use Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax\Facets;
 use Tweakwise\AttributeLandingTweakwise\Model\Client\Response\CleanupFacetResponse;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
 use Tweakwise\Magento2Tweakwise\Model\Client;
@@ -77,7 +81,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory = Mockery::mock(JsonFactory::class);
         $jsonFactory->shouldReceive('create')->once()->andReturn($json);
 
-        $controller = new CleanupFacets($this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
         $this->assertSame($json, $controller->execute());
     }
 
@@ -105,7 +109,7 @@ class CleanupFacetsTest extends Unit
         $helper->shouldReceive('getTweakwiseId')->with(2, 42)->andReturn('1000242');
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('request')->with($facetRequest)->andReturnNull();
-        $controller = new CleanupFacets($this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, Mockery::mock(JsonFactory::class), $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, Mockery::mock(JsonFactory::class), $client, $factory, $helper);
 
         $this->expectException(LocalizedException::class);
         $controller->execute();
@@ -137,7 +141,7 @@ class CleanupFacetsTest extends Unit
         $response->shouldReceive('toArray')->andReturn([]);
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('request')->with($facetRequest)->andReturn($response);
-        $controller = new CleanupFacets($this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, Mockery::mock(JsonFactory::class), $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, Mockery::mock(JsonFactory::class), $client, $factory, $helper);
 
         $this->expectException(LocalizedException::class);
         $controller->execute();
@@ -194,7 +198,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory = Mockery::mock(JsonFactory::class);
         $jsonFactory->shouldReceive('create')->andReturn($json);
 
-        $controller = new CleanupFacets($this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
         $this->assertSame($json, $controller->execute());
     }
 
@@ -237,7 +241,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory = Mockery::mock(JsonFactory::class);
         $jsonFactory->shouldNotReceive('create');
 
-        $controller = new CleanupFacets($this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
         $this->expectException(LocalizedException::class);
         $controller->execute();
     }
@@ -287,6 +291,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory->shouldReceive('create')->andReturn($json);
 
         $controller = new CleanupFacets(
+            Mockery::mock(Context::class)->shouldIgnoreMissing(),
             $this->config('token'),
             $stores,
             $backend,
@@ -316,6 +321,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory->shouldReceive('create')->andReturn($json);
 
         $controller = new CleanupFacets(
+            Mockery::mock(Context::class)->shouldIgnoreMissing(),
             $this->config('token'),
             $stores,
             $backend,
@@ -342,6 +348,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory->shouldNotReceive('create');
 
         $controller = new CleanupFacets(
+            Mockery::mock(Context::class)->shouldIgnoreMissing(),
             $this->config('token'),
             $stores,
             $backend,
@@ -378,6 +385,7 @@ class CleanupFacetsTest extends Unit
         $jsonFactory->shouldReceive('create')->andReturn($json);
 
         $controller = new CleanupFacets(
+            Mockery::mock(Context::class)->shouldIgnoreMissing(),
             $this->config(),
             $stores,
             Mockery::mock(BackendApiClient::class),
@@ -388,5 +396,13 @@ class CleanupFacetsTest extends Unit
             $helper
         );
         $this->assertSame($json, $controller->execute());
+    }
+
+    public function testFacetControllersRequireAdminAuthenticationAndAcl(): void
+    {
+        foreach ([CleanupFacets::class, Facets::class, FacetAttributes::class] as $controller) {
+            $this->assertTrue(is_subclass_of($controller, AbstractAction::class), $controller);
+            $this->assertSame('Emico_AttributeLanding::page_management', $controller::ADMIN_RESOURCE);
+        }
     }
 }

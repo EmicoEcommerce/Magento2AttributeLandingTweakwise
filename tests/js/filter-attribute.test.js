@@ -467,3 +467,13 @@ describe('saving after a failed cleanup', () => {
         expect(alerts).toHaveLength(1);
     });
 });
+
+test('requests attribute options for the store view of the page', () => {
+    let sent;
+    ajax = (options) => { sent = options; return {done: () => ({})}; };
+    const data = {'admin_url': '/admin/', 'data.category_id': '42', 'data.tweakwise_filter_template': '17', 'data.store_id': '2'};
+    const field = {...attributeComponent, source: {get: (key) => data[key]}, options() {}};
+
+    field.fetchOptions();
+    expect(sent.data.store_id).toBe('2');
+});

@@ -154,7 +154,8 @@ define([
                 data: {
                     form_key: formKey,
                     category_id: categoryId,
-                    filter_template: filterTemplate
+                    filter_template: filterTemplate,
+                    store_id: this.source.get('data.store_id')
                 }
             }).done(function (response) {
                 if (requestId === this.optionsRequestId &&

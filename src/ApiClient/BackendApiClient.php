@@ -136,7 +136,7 @@ class BackendApiClient
     public function getAttributesFromFilterTemplate(Store $store, int $filterTemplate): array
     {
         try {
-            return $this->fetchAttributesFromFilterTemplate($store, $filterTemplate, false);
+            return $this->getAttributesFromFilterTemplateOrFail($store, $filterTemplate);
         } catch (GuzzleException | Exception $e) {
             $this->logger->critical(
                 'Retrieving filter template attributes from Tweakwise Backend API failed',
@@ -159,7 +159,38 @@ class BackendApiClient
      */
     public function getAttributesFromFilterTemplateOrFail(Store $store, int $filterTemplate): array
     {
-        return $this->fetchAttributesFromFilterTemplate($store, $filterTemplate, true);
+        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId(), filterTemplate: $filterTemplate);
+        if ($this->cacheExists($cacheKey)) {
+            return $this->getFromCache($cacheKey);
+        }
+
+        $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
+        $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
+        if (!is_array($result)) {
+            throw new LocalizedException(
+                __('The Tweakwise Backend API returned an invalid filter template response.')
+            );
+        }
+
+        // Fail instead of caching an incomplete result when the attribute lookup fails
+        $allAttributes = $result ? $this->getAttributesOrFail($store) : [];
+
+        $attributes = [];
+        foreach ($result as $filterTemplateAttribute) {
+            if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
+                continue;
+            }
+
+            $attributes[] = [
+                'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
+                'label' => $filterTemplateAttribute['Name'],
+                'id' => $filterTemplateAttribute['AttributeId']
+            ];
+        }
+
+        $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
+
+        return $attributes;
     }
 
     /**
@@ -188,55 +219,6 @@ class BackendApiClient
                 'value' => $record['UrlName'],
                 'label' => $record['Name'],
                 'id' => $record['Id']
-            ];
-        }
-
-        $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
-
-        return $attributes;
-    }
-
-    /**
-     * @param Store $store
-     * @param int $filterTemplate
-     * @param bool $strict
-     * @return array
-     * @throws GuzzleException
-     * @throws LocalizedException
-     */
-    private function fetchAttributesFromFilterTemplate(Store $store, int $filterTemplate, bool $strict): array
-    {
-        $cacheKey = $this->getCacheKey('attributes', (int)$store->getId(), filterTemplate: $filterTemplate);
-        if ($this->cacheExists($cacheKey)) {
-            return $this->getFromCache($cacheKey);
-        }
-
-        $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
-        $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
-        if (!is_array($result)) {
-            if ($strict) {
-                throw new LocalizedException(
-                    __('The Tweakwise Backend API returned an invalid filter template response.')
-                );
-            }
-            $result = [];
-        }
-
-        $allAttributes = [];
-        if ($result) {
-            $allAttributes = $strict ? $this->getAttributesOrFail($store) : $this->getAttributes($store);
-        }
-
-        $attributes = [];
-        foreach ($result as $filterTemplateAttribute) {
-            if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
-                continue;
-            }
-
-            $attributes[] = [
-                'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
-                'label' => $filterTemplateAttribute['Name'],
-                'id' => $filterTemplateAttribute['AttributeId']
             ];
         }
 

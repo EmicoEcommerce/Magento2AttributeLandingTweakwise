@@ -14,6 +14,7 @@ use Mockery;
 use Mockery\MockInterface;
 use Psr\Log\LoggerInterface;
 use RuntimeException;
+use stdClass;
 use Tweakwise\AttributeLandingTweakwise\ApiClient\BackendApiClient;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
 
@@ -98,5 +99,40 @@ class BackendApiClientTest extends Unit
 
         $this->expectException(RuntimeException::class);
         $client->getAttributesFromFilterTemplateOrFail($this->store(), 17);
+    }
+
+    public function testStrictLookupDoesNotReuseEmptyResultCachedAfterLenientFailure(): void
+    {
+        $cached = new stdClass();
+        $cached->entries = [];
+        $cache = Mockery::mock(CacheInterface::class);
+        $cache->shouldReceive('load')->andReturnUsing(fn ($key) => $cached->entries[$key] ?? false);
+        $cache->shouldReceive('save')->andReturnUsing(function ($value, $key) use ($cached) {
+            $cached->entries[$key] = $value;
+            return true;
+        });
+        $logger = Mockery::mock(LoggerInterface::class);
+        $logger->shouldReceive('critical');
+        $client = Mockery::mock(
+            BackendApiClient::class . '[doRequest]',
+            [Mockery::mock(Config::class), $logger, new Json(), $cache]
+        );
+        $attributeCalls = new stdClass();
+        $attributeCalls->count = 0;
+        $client->shouldReceive('doRequest')->with('filtertemplate/17/attribute', Mockery::any())
+            ->andReturnUsing(fn () => new Response(200, [], '[{"AttributeId":5,"Name":"Maat"}]'));
+        $client->shouldReceive('doRequest')->with('attribute', Mockery::any())
+            ->andReturnUsing(function () use ($attributeCalls) {
+                if ($attributeCalls->count++ === 0) {
+                    throw new RuntimeException('timeout');
+                }
+                return new Response(200, [], '{"Records":[{"Id":5,"UrlName":"size","Name":"Size"}]}');
+            });
+
+        $this->assertSame([], $client->getAttributesFromFilterTemplate($this->store(), 17));
+        $this->assertSame(
+            [['value' => 'size', 'label' => 'Maat', 'id' => 5]],
+            $client->getAttributesFromFilterTemplateOrFail($this->store(), 17)
+        );
     }
 }

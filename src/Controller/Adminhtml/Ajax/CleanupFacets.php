@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tweakwise\AttributeLandingTweakwise\Controller\Adminhtml\Ajax;
 
 use Exception;
+use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
@@ -25,6 +26,7 @@ use Tweakwise\Magento2TweakwiseExport\Model\Helper;
 class CleanupFacets extends AbstractFacetController
 {
     /**
+     * @param Context $context
      * @param Config $config
      * @param StoreManagerInterface $storeManager
      * @param BackendApiClient $backendApiClient
@@ -35,6 +37,7 @@ class CleanupFacets extends AbstractFacetController
      * @param Helper $helper
      */
     public function __construct(
+        Context $context,
         Config $config,
         StoreManagerInterface $storeManager,
         BackendApiClient $backendApiClient,
@@ -44,7 +47,7 @@ class CleanupFacets extends AbstractFacetController
         private readonly RequestFactory $requestFactory,
         private readonly Helper $helper,
     ) {
-        parent::__construct($config, $storeManager, $backendApiClient);
+        parent::__construct($context, $config, $storeManager, $backendApiClient);
     }
 
     /**
