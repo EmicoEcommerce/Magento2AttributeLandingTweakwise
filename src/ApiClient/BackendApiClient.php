@@ -15,10 +15,12 @@ use Magento\Store\Model\Store;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Tweakwise\AttributeLandingTweakwise\Model\Config;
+use UnexpectedValueException;
 
 class BackendApiClient
 {
-    private const TWEAKWISE_BACKEND_API_BASE_URL = 'https://navigator-api.tweakwise.com';
+    private const TWEAKWISE_BACKEND_API_BASE_URL = 'https://app-api.tweakwise.com';
+    private const PAGE_SIZE = 100;
     private const CACHE_LIFETIME = 600;
 
     /**
@@ -104,15 +106,7 @@ class BackendApiClient
 
         $attributes = [];
         try {
-            $response = $this->doRequest('attribute', $store);
-            $contents = $response->getBody()->getContents();
-            $result = $this->jsonSerializer->unserialize($contents);
-
-            if (!isset($result['Records'])) {
-                return [];
-            }
-
-            foreach ($result['Records'] as $record) {
+            foreach ($this->getPaginatedRecords($store, 'attribute') as $record) {
                 $attributes[$record['Id']] = [
                     'value' => $record['UrlName'],
                     'label' => $record['Name'],
@@ -150,23 +144,19 @@ class BackendApiClient
         try {
             $response = $this->doRequest(sprintf('filtertemplate/%s/attribute', $filterTemplate), $store);
             $contents = $response->getBody()->getContents();
-            $result = is_array($this->jsonSerializer->unserialize($contents)) ?
-                $this->jsonSerializer->unserialize($contents) :
-                [];
+            $result = $this->jsonSerializer->unserialize($contents);
+            $result = is_array($result) ? $result : [];
 
             $allAttributes = $result ? $this->getAttributes($store) : [];
-
-            foreach ($result as $filterTemplateAttribute) {
-                if (!isset($allAttributes[$filterTemplateAttribute['AttributeId']])) {
-                    continue;
-                }
-
-                $attributes[] = [
-                    'value' => $allAttributes[$filterTemplateAttribute['AttributeId']]['value'],
-                    'label' => $filterTemplateAttribute['Name'],
-                    'id' => $filterTemplateAttribute['AttributeId']
-                ];
+            if (
+                $result
+                && $allAttributes === []
+                && !$this->cacheExists($this->getCacheKey('attributes', (int)$store->getId()))
+            ) {
+                return [];
             }
+
+            $attributes = $this->mapFilterTemplateAttributes($result, $allAttributes);
 
             $this->cache->save($this->jsonSerializer->serialize($attributes), $cacheKey, [], $this->getCacheLifetime());
 
@@ -180,6 +170,87 @@ class BackendApiClient
             );
             return [];
         }
+    }
+
+    /**
+     * @param array $filterTemplateAttributes
+     * @param array $allAttributes
+     * @return array
+     */
+    private function mapFilterTemplateAttributes(array $filterTemplateAttributes, array $allAttributes): array
+    {
+        $attributes = [];
+        foreach ($filterTemplateAttributes as $filterTemplateAttribute) {
+            $attributeId = $filterTemplateAttribute['AttributeId'];
+            if (!isset($allAttributes[$attributeId])) {
+                continue;
+            }
+
+            $attributes[] = [
+                'value' => $allAttributes[$attributeId]['value'],
+                'label' => $this->getFilterTemplateAttributeName(
+                    $filterTemplateAttribute,
+                    $allAttributes[$attributeId]['label']
+                ),
+                'id' => $attributeId
+            ];
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param array $filterTemplateAttribute
+     * @param string $fallback
+     * @return string
+     */
+    private function getFilterTemplateAttributeName(array $filterTemplateAttribute, string $fallback): string
+    {
+        $translations = $filterTemplateAttribute['NameTranslations'] ?? [];
+        if (is_array($translations)) {
+            foreach ($translations as $translation) {
+                if (isset($translation['Value']) && is_string($translation['Value']) && $translation['Value'] !== '') {
+                    return $translation['Value'];
+                }
+            }
+        }
+
+        $name = $filterTemplateAttribute['Name'] ?? null;
+        return is_string($name) && $name !== '' ? $name : $fallback;
+    }
+
+    /**
+     * @param Store $store
+     * @param string $path
+     * @return array
+     * @throws GuzzleException
+     * @throws Exception
+     */
+    private function getPaginatedRecords(Store $store, string $path): array
+    {
+        $records = [];
+        $offset = 0;
+        $total = null;
+        do {
+            $requestPath = sprintf('%s?limit=%d&offset=%d', $path, self::PAGE_SIZE, $offset);
+            $response = $this->doRequest($requestPath, $store);
+            $result = $this->jsonSerializer->unserialize($response->getBody()->getContents());
+            if (!is_array($result) || !isset($result['Records']) || !is_array($result['Records'])) {
+                throw new UnexpectedValueException(
+                    sprintf('Unexpected response from Tweakwise App API for "%s"', $requestPath)
+                );
+            }
+
+            $records = array_merge($records, $result['Records']);
+            $recordCount = count($result['Records']);
+            $offset += $recordCount;
+            $total = isset($result['Total']) ? (int)$result['Total'] : null;
+        } while (
+            $recordCount > 0 &&
+            ($total !== null ? $offset < $total : $recordCount === self::PAGE_SIZE)
+        );
+
+        return $records;
     }
 
     /**
@@ -205,22 +276,15 @@ class BackendApiClient
      */
     public function getAttributeValues(int $attributeId, Store $store): array
     {
-        $cacheKey = $this->getCacheKey('attribute_values', (int)$store->getId(), $attributeId);
+        $cacheKey = $this->getCacheKey('attribute_values_distinct', (int)$store->getId(), $attributeId);
         if ($this->cacheExists($cacheKey)) {
             return $this->getFromCache($cacheKey);
         }
 
         $attributeValues = [];
         try {
-            $response = $this->doRequest(sprintf('attribute/%s/values', $attributeId), $store);
-            $contents = $response->getBody()->getContents();
-            $result = $this->jsonSerializer->unserialize($contents);
-
-            if (!isset($result['Records'])) {
-                return [];
-            }
-
-            foreach ($result['Records'] as $record) {
+            $path = sprintf('attribute/%s/values/distinct', $attributeId);
+            foreach ($this->getPaginatedRecords($store, $path) as $record) {
                 $attributeValues[] = [
                     'value' => $record['Value'],
                     'label' => $record['Value'],
