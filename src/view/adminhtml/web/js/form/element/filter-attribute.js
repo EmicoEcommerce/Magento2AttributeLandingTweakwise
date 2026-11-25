@@ -87,7 +87,8 @@ define([
 
                 if (this.initialOptionsPending) {
                     this.initialOptionsPending = false;
-                    if (currentAttributeValue === this.value() && this.value() === this.savedValue) {
+                    // Restore unless the user selected another attribute; an emptied value is restored as well
+                    if (!this.value() || this.value() === this.savedValue) {
                         this.setRestoredValue();
                     }
                     this.subscribeAttribute();

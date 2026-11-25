@@ -106,7 +106,7 @@ function deferredAjax() {
         done(callback) { onSuccess = callback; return request; },
         fail(callback) { onFailure = callback; return request; },
         resolve(data) { onSuccess(data); },
-        reject() { onFailure(); }
+        reject(xhr = {}) { onFailure(xhr); }
     };
     return request;
 }
@@ -386,6 +386,46 @@ test('preserves a user selection made while initial options are loading', async 
     await request;
     expect(restored).not.toHaveBeenCalled();
     expect(field.initAttributeValueField).toHaveBeenCalledWith('size');
+});
+
+test('restores the saved attribute when the value was cleared while initial options were loading', async () => {
+    let value = 'color';
+    let options = [];
+    let resolveRequest;
+    const field = {
+        ...attributeComponent,
+        initialOptionsPending: true,
+        savedValue: 'color',
+        value(next) { if (next !== undefined) value = next; return value; },
+        options: () => options,
+        source: {get: () => 'current'},
+        fetchOptions: () => new Promise((resolve) => { resolveRequest = resolve; }),
+        setOtherFieldVisibility: jest.fn(),
+        subscribeAttribute: jest.fn(),
+        initAttributeValueField: jest.fn()
+    };
+
+    const request = field.refreshOptions();
+    options = [{value: 'size'}, {value: 'color'}];
+    field.value('');
+    resolveRequest();
+    await request;
+    expect(value).toBe('color');
+    expect(field.initAttributeValueField).toHaveBeenCalledWith('color');
+});
+
+test('shows the server error message when the cleanup request fails', () => {
+    const fixture = createRows([{attribute: 'color'}]);
+    const request = deferredAjax();
+    ajax = () => request;
+    alerts.length = 0;
+
+    fixture.rows.refreshAvailableFacets();
+    request.reject({responseJSON: {error: 'Unable to load the available Tweakwise filters.'}});
+
+    expect(fixture.records).toHaveLength(1);
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].content).toContain('Unable to load the available Tweakwise filters.');
 });
 
 test('keeps the save blocked while a newer cleanup request is pending', () => {

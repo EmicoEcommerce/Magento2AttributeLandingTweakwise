@@ -55,6 +55,7 @@ define([
             const storeId = this.source.get('data.store_id');
             const requestId = this.facetRequestId = (this.facetRequestId || 0) + 1;
 
+            // Multiple categories have no single facet context, so nothing is cleaned up
             if (!categoryId || Array.isArray(categoryId)) {
                 this.source.set('params.facetValidation', 'valid');
                 return result.resolve(false).promise();
@@ -94,10 +95,10 @@ define([
                 const removed = this.removeInvalidRecords(options);
                 this.source.set('params.facetValidation', 'valid');
                 result.resolve(removed);
-            }).fail(() => {
+            }).fail((xhr) => {
                 if (requestId === this.facetRequestId) {
                     this.source.set('params.facetValidation', 'error');
-                    this.showFacetError();
+                    this.showFacetError(xhr && xhr.responseJSON && xhr.responseJSON.error);
                     result.reject();
                 }
             });
@@ -105,9 +106,14 @@ define([
             return result.promise();
         },
 
-        showFacetError: function () {
+        /**
+         * @param {String} [reason]
+         */
+        showFacetError: function (reason) {
+            const message = $t('Could not check the filters for the selected category and template. Existing filters were not removed.');
+
             alert({
-                content: $t('Could not check the filters for the selected category and template. Existing filters were not removed.')
+                content: typeof reason === 'string' && reason ? `${message} ${reason}` : message
             });
         },
 

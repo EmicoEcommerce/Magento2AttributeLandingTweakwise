@@ -52,9 +52,25 @@ class CleanupFacets extends AbstractFacetController
 
     /**
      * @return Json
-     * @throws LocalizedException
      */
     public function execute(): Json
+    {
+        try {
+            $facets = $this->getAvailableFacets();
+        } catch (LocalizedException $e) {
+            return $this->resultJsonFactory->create()
+                ->setHttpResponseCode(500)
+                ->setData(['error' => $e->getMessage()]);
+        }
+
+        return $this->resultJsonFactory->create()->setData(array_values($facets));
+    }
+
+    /**
+     * @return array
+     * @throws LocalizedException
+     */
+    private function getAvailableFacets(): array
     {
         $categoryId = (int)$this->request->getParam('category_id');
         if ($categoryId <= 0) {
@@ -80,21 +96,22 @@ class CleanupFacets extends AbstractFacetController
                 // RequestInterface::setParams() merges, so only the store scope used by the Tweakwise config changes
                 $this->request->setParams(['store' => $store->getId(), 'website' => 0]);
 
-                $tweakwiseCategoryId = null;
-                $key = ['backend', $this->config->getBackendApiToken($store)];
-                if (!$this->isBackendApiEnabled($store)) {
-                    $tweakwiseCategoryId = $this->helper->getTweakwiseId((int)$store->getId(), $categoryId);
-                    $key = ['navigator', $tweakwiseCategoryId];
-                }
+                $useBackendApi = $this->isBackendApiEnabled($store);
+                $tweakwiseCategoryId = $useBackendApi
+                    ? null
+                    : $this->helper->getTweakwiseId((int)$store->getId(), $categoryId);
+                $key = $useBackendApi
+                    ? ['backend', $this->config->getBackendApiToken($store)]
+                    : ['navigator', $tweakwiseCategoryId];
                 $key = implode('|', [...$key, $this->config->getGeneralAuthenticationKey($store), $template]);
                 if (isset($checked[$key])) {
                     continue;
                 }
 
                 $checked[$key] = true;
-                $facets += $tweakwiseCategoryId === null
+                $facets += $useBackendApi
                     ? $this->getBackendApiFacets($store, $template)
-                    : $this->getNavigatorFacets($tweakwiseCategoryId, $template);
+                    : $this->getNavigatorFacets((string)$tweakwiseCategoryId, $template);
             }
         } finally {
             $this->storeManager->setCurrentStore($previousStore->getId());
@@ -102,7 +119,7 @@ class CleanupFacets extends AbstractFacetController
             $this->request->setParams(['store' => $previousStoreParam, 'website' => $previousWebsiteParam]);
         }
 
-        return $this->resultJsonFactory->create()->setData(array_values($facets));
+        return $facets;
     }
 
     /**

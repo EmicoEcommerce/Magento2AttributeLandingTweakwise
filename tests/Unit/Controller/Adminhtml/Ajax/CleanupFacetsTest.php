@@ -8,7 +8,6 @@ use Emico\CodeCept\Test\Unit;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\Backend\App\AbstractAction;
@@ -109,10 +108,9 @@ class CleanupFacetsTest extends Unit
         $helper->shouldReceive('getTweakwiseId')->with(2, 42)->andReturn('1000242');
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('request')->with($facetRequest)->andReturnNull();
-        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, Mockery::mock(JsonFactory::class), $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $this->jsonFactory($json = $this->errorJson()), $client, $factory, $helper);
 
-        $this->expectException(LocalizedException::class);
-        $controller->execute();
+        $this->assertSame($json, $controller->execute());
     }
 
     public function testMissingFacetsBlockIsNotTreatedAsAnEmptyTemplate(): void
@@ -141,10 +139,9 @@ class CleanupFacetsTest extends Unit
         $response->shouldReceive('toArray')->andReturn([]);
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('request')->with($facetRequest)->andReturn($response);
-        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, Mockery::mock(JsonFactory::class), $client, $factory, $helper);
+        $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $this->jsonFactory($json = $this->errorJson()), $client, $factory, $helper);
 
-        $this->expectException(LocalizedException::class);
-        $controller->execute();
+        $this->assertSame($json, $controller->execute());
     }
 
     public function testDefaultScopeKeepsFacetsAvailableInAnyStore(): void
@@ -238,12 +235,28 @@ class CleanupFacetsTest extends Unit
         $response->shouldReceive('getFacets')->andReturn([]);
         $client = Mockery::mock(Client::class);
         $client->shouldReceive('request')->twice()->andReturn($response, null);
-        $jsonFactory = Mockery::mock(JsonFactory::class);
-        $jsonFactory->shouldNotReceive('create');
+        $jsonFactory = $this->jsonFactory($json = $this->errorJson());
 
         $controller = new CleanupFacets(Mockery::mock(Context::class)->shouldIgnoreMissing(), $this->config(), $stores, Mockery::mock(BackendApiClient::class), $request, $jsonFactory, $client, $factory, $helper);
-        $this->expectException(LocalizedException::class);
-        $controller->execute();
+        $this->assertSame($json, $controller->execute());
+    }
+
+    private function errorJson(): Json&MockInterface
+    {
+        $json = Mockery::mock(Json::class);
+        $json->shouldReceive('setHttpResponseCode')->with(500)->once()->andReturnSelf();
+        $json->shouldReceive('setData')
+            ->with(['error' => 'Unable to load the available Tweakwise filters.'])
+            ->once()
+            ->andReturnSelf();
+        return $json;
+    }
+
+    private function jsonFactory(Json $json): JsonFactory&MockInterface
+    {
+        $jsonFactory = Mockery::mock(JsonFactory::class);
+        $jsonFactory->shouldReceive('create')->once()->andReturn($json);
+        return $jsonFactory;
     }
 
     private function config(?string $backendToken = null): Config&MockInterface
@@ -344,8 +357,7 @@ class CleanupFacetsTest extends Unit
         $stores->shouldReceive('setCurrentStore')->with(0)->once()->ordered();
         $backend = Mockery::mock(BackendApiClient::class);
         $backend->shouldReceive('getAttributesOrFail')->andThrow(new RuntimeException('timeout'));
-        $jsonFactory = Mockery::mock(JsonFactory::class);
-        $jsonFactory->shouldNotReceive('create');
+        $jsonFactory = $this->jsonFactory($json = $this->errorJson());
 
         $controller = new CleanupFacets(
             Mockery::mock(Context::class)->shouldIgnoreMissing(),
@@ -358,8 +370,7 @@ class CleanupFacetsTest extends Unit
             Mockery::mock(RequestFactory::class),
             Mockery::mock(Helper::class)
         );
-        $this->expectException(LocalizedException::class);
-        $controller->execute();
+        $this->assertSame($json, $controller->execute());
     }
 
     public function testNavigatorRequestsAreDeduplicatedPerInstanceAndCategory(): void
